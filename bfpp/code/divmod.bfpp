@@ -1,0 +1,25 @@
+(? >number denom ndiv16 nmod16 tmp2 tmp1)
+
+(!number)
+[
+(!nmod16) +
+[(!tmp1)+ (!tmp2) + (!nmod16) -]
+(!tmp2)
+[(!nmod16) + (!tmp2)-]
+
+(!denom)
+[(!tmp1) - (!tmp2) + (!denom) -]
+(!tmp2) [ (!denom) + (!tmp2) -]
+
+(!tmp2) +
+(!tmp1)
+[(!tmp2) [-] (!tmp1) [-]]
+
+(!tmp2) [
+    (!ndiv16) +
+    (!nmod16) [-]
+    (!tmp2) [-]
+]
+
+(!number) -
+]
