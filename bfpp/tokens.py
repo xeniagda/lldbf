@@ -148,6 +148,21 @@ class LocGoto(BFPPToken):
         else:
             raise RuntimeError("Memory location " + self.location + " not found!")
 
+class DeclareMacro(BFPPToken):
+    def __init__(self, name, args, content):
+        super().__init__()
+        self.name = name
+        self.args = args
+        self.content = content
+
+    def __str__(self, ctx):
+        return "define " + self.name + str(self.args) + "{" + str(self.content) + "}"
+
+    def __repr__(self):
+        return "Define(name=" + self.name + ",args=" + repr(self.args) + ",content=" + repr(self.content) + ")"
+
+    def into_bf(self, ctx):
+        return ""
 
 if __name__ == "__main__":
     code = TokenList([

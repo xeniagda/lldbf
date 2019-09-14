@@ -1,7 +1,6 @@
 from tokens import *
 from lark import Lark, Transformer
 
-
 grammar = r"""
 bfpp: bfpp_block+
 
@@ -9,13 +8,18 @@ bfpp: bfpp_block+
            | repetition
            | loc_dec
            | loc_goto
+           | dec_macro
 
 locname: /[\w\d_]+/
-locname_active: ">" /[\w\d_]+/
 
-loc_dec: "(?" locname* locname_active locname* ")"
+locname_inactive: locname
+locname_active: ">" locname
+
+loc_dec: "(?" locname_inactive* locname_active locname_inactive* ")"
 
 loc_goto: "(!" locname ")"
+
+dec_macro: "define" locname loc_dec "{" bfpp "}"
 
 repetition: cont_group INT
 
@@ -62,10 +66,13 @@ class ParseTransformer(Transformer):
         return BFLoop(args[0])
 
     def locname(self, args):
-        return ("ln", args[0].value)
+        return args[0].value
+
+    def locname_inactive(self, args):
+        return ("ln", args[0])
 
     def locname_active(self, args):
-        return ("ln_a", args[0].value)
+        return ("ln_a", args[0])
 
     def loc_dec(self, args):
         locs = []
@@ -77,15 +84,21 @@ class ParseTransformer(Transformer):
         return LocDec(locs, active)
 
     def loc_goto(self, args):
-        return LocGoto(args[0][1])
+        return LocGoto(args[0])
+
+    def dec_macro(self, args):
+        name, args, content = args
+
+        return DeclareMacro(name, args, content)
 
 if __name__ == "__main__":
     res = parser.parse("""
-    (?>a b c)
-    (!a) ++
-    (!c) --
-    <
-    (!c) +++
+    define test_fn (?>a b c) {
+        (!a) ++
+        (!c) --
+        <
+        (!c) +++
+    }
     """)
     print(res)
     print(res.pretty())
