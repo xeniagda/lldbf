@@ -164,6 +164,21 @@ class DeclareMacro(BFPPToken):
     def into_bf(self, ctx):
         return ""
 
+class InvokeMacro(BFPPToken):
+    def __init__(self, name, args):
+        super().__init__()
+        self.name = name
+        self.args = args
+
+    def __str__(self, ctx):
+        return "invoke " + self.name + "(" + ",".join(self.args) + ")"
+
+    def __repr__(self):
+        return "Invoke(name=" + self.name + ",args=(" + ",".join(self.args) + ")"
+
+    def into_bf(self, ctx):
+        raise NotImplementedError()
+
 if __name__ == "__main__":
     code = TokenList([
         BFToken("+"),

@@ -9,6 +9,7 @@ bfpp: bfpp_block+
            | loc_dec
            | loc_goto
            | dec_macro
+           | inv_macro
 
 locname: /[\w\d_]+/
 
@@ -20,6 +21,8 @@ loc_dec: "(?" locname_inactive* locname_active locname_inactive* ")"
 loc_goto: "(!" locname ")"
 
 dec_macro: "define" locname loc_dec "{" bfpp "}"
+
+inv_macro: "invoke" locname "(!" locname* ")"
 
 repetition: cont_group INT
 
@@ -91,6 +94,12 @@ class ParseTransformer(Transformer):
 
         return DeclareMacro(name, args, content)
 
+    def inv_macro(self, args):
+        fn_name = args[0]
+        args_for_function = args[1:]
+
+        return InvokeMacro(fn_name, args_for_function)
+
 if __name__ == "__main__":
     res = parser.parse("""
     define test_fn (?>a b c) {
@@ -98,7 +107,11 @@ if __name__ == "__main__":
         (!c) --
         <
         (!c) +++
+        (!a)
     }
+
+    (?x >y z)
+    invoke test_fn (!z y x)
     """)
     print(res)
     print(res.pretty())
