@@ -102,16 +102,16 @@ class ParseTransformer(Transformer):
 
 if __name__ == "__main__":
     res = parser.parse("""
-    def test_fn (?>a b c) {
-        (!a) ++
-        (!c) --
-        <
-        (!c) +++
-        (!a)
+    def inc_all (?>a b c) {
+        (!a) +
+        (!b) +
+        (!c) +
     }
 
-    (?x >y z)
-    inv test_fn (!z y x)
+    (?x >y i j k z)
+    inv inc_all (!z y x)
+
+    (!i) -
     """)
     print(res)
     print(res.pretty())

@@ -6,6 +6,8 @@ class Context:
         self.locations_with_idxs = {}
         self.current_ptr = 0
 
+        self.macros = {}
+
     def __str__(self):
         return "Context(locs=" + str(self.locations_with_idxs) + ", ptr=" + str(self.current_ptr) + ")"
 
@@ -162,6 +164,10 @@ class DeclareMacro(BFPPToken):
         return "Define(name=" + self.name + ",args=" + repr(self.args) + ",content=" + repr(self.content) + ")"
 
     def into_bf(self, ctx):
+        if self.name in ctx.macros.keys():
+            raise ValueError(str(self.name) + " is already defined as " + str(ctx.macros[self.name]))
+
+        ctx.macros[self.name] = self
         return ""
 
 class InvokeMacro(BFPPToken):
@@ -177,7 +183,33 @@ class InvokeMacro(BFPPToken):
         return "Invoke(name=" + self.name + ",args=(" + ",".join(self.args) + ")"
 
     def into_bf(self, ctx):
-        raise NotImplementedError()
+        if self.name not in ctx.macros.keys():
+            raise ValueError(self.name + " is not defined!")
+
+        fn = ctx.macros[self.name]
+        if len(self.args) != len(fn.args.locations):
+            raise ValueError("Wrong number of arguments in call to " + self.name + "!")
+
+        fn_ctx = Context()
+        fn_ctx.current_ptr = ctx.current_ptr
+        fn_ctx.macros = ctx.macros
+
+        # Assign addresses for arguments
+        for i in range(len(self.args)):
+            var_name = self.args[i]
+            arg_name = fn.args.locations[i]
+            fn_ctx.locations_with_idxs[arg_name] = ctx.locations_with_idxs[var_name]
+
+        # Go to the active arg in the function
+        goto = LocGoto(fn.args.locations[fn.args.active_idx])
+        code = goto.into_bf(fn_ctx)
+
+        # Invoke function
+        code += fn.content.into_bf(fn_ctx)
+
+        ctx.current_ptr = fn_ctx.current_ptr
+
+        return code
 
 if __name__ == "__main__":
     code = TokenList([
