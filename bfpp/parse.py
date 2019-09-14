@@ -34,8 +34,12 @@ bf_loop: "[" bfpp "]"
                | "."
                | ","
 
+COMMENT: "/*" /(.|\n)*?/ "*/"
+       | "//" /.*/
+
 %import common.INT
 %import common.WS
+%ignore COMMENT
 %ignore WS
 """
 
