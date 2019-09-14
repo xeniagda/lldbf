@@ -1,30 +1,38 @@
-(? >number denom div mod tmp2 tmp1)
+def divmod  (? >number denom div mod tmp2 tmp1) {
 
-(!number)
-[
-(!number) -
-(!mod) +
+    (!number)
+    [
+    (!number) -
+    (!mod) +
 
-// Copy mod to tmp1
-[(!tmp1)+ (!tmp2) + (!mod) -]
-(!tmp2) [(!mod) + (!tmp2)-]
+    // Copy mod to tmp1
+    [(!tmp1)+ (!tmp2) + (!mod) -]
+    (!tmp2) [(!mod) + (!tmp2)-]
 
-// Subtract denom from tmp1
-(!denom)
-[(!tmp1) - (!tmp2) + (!denom) -]
-(!tmp2) [ (!denom) + (!tmp2) -]
+    // Subtract denom from tmp1
+    (!denom)
+    [(!tmp1) - (!tmp2) + (!denom) -]
+    (!tmp2) [ (!denom) + (!tmp2) -]
 
-// If tmp1 == 0, set tmp2 <- 1
-(!tmp2) +
-(!tmp1)
-[(!tmp2) [-] (!tmp1) [-]]
+    // If tmp1 == 0, set tmp2 <- 1
+    (!tmp2) +
+    (!tmp1)
+    [(!tmp2) [-] (!tmp1) [-]]
 
-// If tmp2 == 1, increase div, reset mod
-(!tmp2) [
-    (!div) +
-    (!mod) [-]
-    (!tmp2) -
-]
+    // If tmp2 == 1, increase div, reset mod
+    (!tmp2) [
+        (!div) +
+        (!mod) [-]
+        (!tmp2) -
+    ]
 
-(!number)
-]
+    (!number)
+    ]
+}
+
+>>>>>>
+(? tmp0 tmp1 >n den div_res mod_res)
+(!n) +69
+(!den) +4
+inv divmod (!n den div_res mod_res tmp0 tmp1)
+(!div_res)
