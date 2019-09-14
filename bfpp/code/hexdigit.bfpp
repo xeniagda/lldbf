@@ -52,10 +52,3 @@ def digit2hex(? >n tmp1 tmp2) {
         (!tmp1) -
     ]
 }
-
-(? >n tmp1 tmp2)
-
-(!n) ,
-
-inv digit2hex (n tmp1 tmp2)
-(!n) .
