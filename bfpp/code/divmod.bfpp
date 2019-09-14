@@ -1,7 +1,5 @@
 def divmod  (? >number denom div mod tmp2 tmp1) {
-
-    (!number)
-    [
+[
     (!number) -
     (!mod) +
 
@@ -27,12 +25,5 @@ def divmod  (? >number denom div mod tmp2 tmp1) {
     ]
 
     (!number)
-    ]
+]
 }
-
->>>>>>
-(? tmp0 tmp1 >n den div_res mod_res)
-(!n) +69
-(!den) +4
-inv divmod (!n den div_res mod_res tmp0 tmp1)
-(!div_res)
