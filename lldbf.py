@@ -313,6 +313,9 @@ if __name__ == "__main__":
                 else:
                     start, end = at
 
+                start = max(0, start)
+                end = max(len(code_units), start)
+
                 for graph, line, cont in pretty_print_code_slice(
                         code_units,
                         start,
@@ -328,6 +331,17 @@ if __name__ == "__main__":
 
             if cmd[:2] == "bl":
                 print("Breakpoints at", breakpoints)
+
+            if cmd[0] == "X":
+                exp_pos, exp_val = cmd[1:].split(",")
+                if exp_pos == "":
+                    exp_pos = "$"
+                exp_pos = exp_pos.replace("$", str(MP))
+
+                at = eval(exp_pos)
+                val = eval(exp_val)
+
+                set_mem(at, val)
 
             if cmd[0] == "x":
                 exp = cmd[1:]
