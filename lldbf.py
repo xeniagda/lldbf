@@ -279,7 +279,7 @@ if __name__ == "__main__":
                     print("Use iw to set input, ia to append input and is to show input")
                 else:
                     if cmd[1] == "s":
-                        print("Input feed:")
+                        print("Input feed (len=" + str(len(input_feed)) + "):")
                         for ch in input_feed:
                             if 32 <= ch < 128:
                                 print(chr(ch), end="")
@@ -314,7 +314,7 @@ if __name__ == "__main__":
                     start, end = at
 
                 start = max(0, start)
-                end = max(len(code_units), start)
+                end = min(len(code_units), end)
 
                 for graph, line, cont in pretty_print_code_slice(
                         code_units,
@@ -434,7 +434,7 @@ if __name__ == "__main__":
     output = []
 
     def run_instruction():
-        global IP, MP, output, input
+        global IP, MP, output, input, input_feed
         if code_units[IP].typ == Unit.INCDEC:
             set_mem(MP, (get_mem(MP) + code_units[IP].param) % 256)
             IP += 1
