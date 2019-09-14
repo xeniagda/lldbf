@@ -2,7 +2,7 @@ from tokens import *
 from lark import Lark, Transformer
 
 
-grammar = """
+grammar = r"""
 bfpp: bfpp_block+
 
 ?bfpp_block: bf_stmt
@@ -34,12 +34,9 @@ bf_loop: "[" bfpp "]"
                | "."
                | ","
 
-COMMENT: /\/\*.*\*\//
-
 %import common.INT
 %import common.WS
 %ignore WS
-%ignore COMMENT
 """
 
 parser = Lark(grammar, start="bfpp")
