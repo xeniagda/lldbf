@@ -1,0 +1,61 @@
+def digit2hex(? >n tmp1 tmp2) {
+
+    // If n < 10, set n <- n + '0' = n + 48
+    // Else, set n <- n - 10 + 'A' = n + 55
+
+    // Equiv to:
+    // If 10 <= n <= 16, set n <- n - 10 + 'A' - '0' = 7
+    // Set n <- n + '0' = n + 48
+
+    // Equiv to:
+    // set n <- n - 10
+    // repeat 6 times:
+    //     If n == 0, set n <- n + 7
+    //     n--
+    // end repeat
+    // Set n <- n + 64
+
+    // Check if 10 <= n <= 16 same as checkng 0 <= n-10 <= 6
+
+    (!n) -10
+
+    (
+        // Copy n to tmp1
+        (!n) [
+            (!tmp1)+
+            (!tmp2)+
+            (!n) -
+        ]
+        (!tmp2) [
+            (!n) +
+            (!tmp2) -
+        ]
+
+        // If n == 0, set tmp2 = 1, reset tmp1
+        (!tmp2) +
+        (!tmp1) [
+            (!tmp2) -
+            (!tmp1) [-]
+        ]
+
+        // If tmp2 == 1, set n <- n + 7
+        (!tmp2) [
+            (!n) +7
+            (!tmp2) [-]
+        ]
+        (!n) -
+    ) 6
+
+    // Increase n by 64 = 8*8
+    (!tmp1) +8 [
+        (!n) +8
+        (!tmp1) -
+    ]
+}
+
+(? >n tmp1 tmp2)
+
+(!n) ,
+
+inv digit2hex (n tmp1 tmp2)
+(!n) .
