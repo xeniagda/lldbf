@@ -20,9 +20,9 @@ loc_dec: "(?" locname_inactive* locname_active locname_inactive* ")"
 
 loc_goto: "(!" locname ")"
 
-dec_macro: "define" locname loc_dec "{" bfpp "}"
+dec_macro: "def" locname loc_dec "{" bfpp "}"
 
-inv_macro: "invoke" locname "(!" locname* ")"
+inv_macro: "inv" locname "(!" locname* ")"
 
 repetition: cont_group INT
 
@@ -102,7 +102,7 @@ class ParseTransformer(Transformer):
 
 if __name__ == "__main__":
     res = parser.parse("""
-    define test_fn (?>a b c) {
+    def test_fn (?>a b c) {
         (!a) ++
         (!c) --
         <
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     }
 
     (?x >y z)
-    invoke test_fn (!z y x)
+    inv test_fn (!z y x)
     """)
     print(res)
     print(res.pretty())
