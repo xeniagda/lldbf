@@ -1,25 +1,30 @@
-(? >number denom ndiv16 nmod16 tmp2 tmp1)
+(? >number denom div mod tmp2 tmp1)
 
 (!number)
 [
-(!nmod16) +
-[(!tmp1)+ (!tmp2) + (!nmod16) -]
-(!tmp2)
-[(!nmod16) + (!tmp2)-]
+(!number) -
+(!mod) +
 
+// Copy mod to tmp1
+[(!tmp1)+ (!tmp2) + (!mod) -]
+(!tmp2) [(!mod) + (!tmp2)-]
+
+// Subtract denom from tmp1
 (!denom)
 [(!tmp1) - (!tmp2) + (!denom) -]
 (!tmp2) [ (!denom) + (!tmp2) -]
 
+// If tmp1 == 0, set tmp2 <- 1
 (!tmp2) +
 (!tmp1)
 [(!tmp2) [-] (!tmp1) [-]]
 
+// If tmp2 == 1, increase div, reset mod
 (!tmp2) [
-    (!ndiv16) +
-    (!nmod16) [-]
-    (!tmp2) [-]
+    (!div) +
+    (!mod) [-]
+    (!tmp2) -
 ]
 
-(!number) -
+(!number)
 ]
