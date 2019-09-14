@@ -22,7 +22,7 @@ loc_goto: "(!" locname ")"
 
 dec_macro: "def" locname loc_dec "{" bfpp "}"
 
-inv_macro: "inv" locname "(!" locname* ")"
+inv_macro: "inv" locname "(" locname* ")"
 
 repetition: cont_group INT
 
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     }
 
     (?x >y i j k z)
-    inv inc_all (!z y x)
+    inv inc_all (z y x)
 
     (!i) -
     """)
