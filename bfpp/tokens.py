@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from add_n_gen import precomp_xyzk_list
 
 
 class Context:
@@ -6,7 +7,7 @@ class Context:
         self.locations_with_idxs = {}
         self.current_ptr = 0
 
-        self.macros = {}
+        self.macros = INIT_MACROS.copy()
 
     def __str__(self):
         return "Context(locs=" + str(self.locations_with_idxs) + ", ptr=" + str(self.current_ptr) + ")"
@@ -235,17 +236,41 @@ class AssumeStable(BFPPToken):
         return inner_code
 
 
-if __name__ == "__main__":
-    code = TokenList([
-        BFToken("+"),
-        BFToken(">"),
-        BFToken("+"),
-        BFToken("+"),
-        BFLoop(BFToken("+")),
-        BFToken("+"),
-        BFToken("<"),
-        BFToken("-"),
-        Repetition(BFToken("+"), 10)
+def inc_by(n):
+    n = n % 256
+    if n == 0:
+        return TokenList([])
+    if n < 128:
+        return Repetition(BFToken("+"), n)
+    else:
+        return Repetition(BFToken("-"), 256 - n)
+
+
+INIT_MACROS = {}
+
+# Generate setN
+for i in range(256):
+    (x, y, z, k) = precomp_xyzk_list[i]
+
+    fn_body = TokenList([
+        LocGoto("tmp"),
+        inc_by(x),
+        BFLoop(
+            TokenList([
+                LocGoto("res"),
+                inc_by(y),
+                LocGoto("tmp"),
+                inc_by(-z),
+            ])),
+        LocGoto("res"),
+        inc_by(k),
     ])
 
-    print(code.into_bf(Centext()))
+    args = LocDec(["res", "tmp"], 1)
+
+    fn = DeclareMacro("add" + str(i), args, fn_body)
+    INIT_MACROS["add" + str(i)] = fn
+
+if __name__ == "__main__":
+
+    print(INIT_MACROS["set20"])

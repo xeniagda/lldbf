@@ -122,11 +122,10 @@ if __name__ == "__main__":
 
     >>>
     (?x >y i j k z)
-    (!x) +69
-    (!i) +65
-    (!j) +66
-    (!k) +67
-    (!z) +0
+    inv add69(x y)
+    inv add65(i y)
+    inv add66(j k)
+    inv add67(k z)
 
     inv print_clear_zts(y)
     (!x) .
