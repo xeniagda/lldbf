@@ -1,5 +1,6 @@
 import os
 
+
 def preproc_file(filepath):
     lines = open(filepath).readlines()
     lines = [line.strip() for line in lines]
@@ -14,6 +15,5 @@ def preproc_file(filepath):
             result += content
         else:
             result = result + line + "\n"
-
 
     return result

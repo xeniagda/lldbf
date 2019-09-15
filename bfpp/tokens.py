@@ -10,7 +10,8 @@ class Context:
         self.macros = INIT_MACROS.copy()
 
     def __str__(self):
-        return "Context(locs=" + str(self.locations_with_idxs) + ", ptr=" + str(self.current_ptr) + ")"
+        return "Context(locs=" + str(
+            self.locations_with_idxs) + ", ptr=" + str(self.current_ptr) + ")"
 
     def clone(self):
         res = Context()
@@ -157,7 +158,9 @@ class LocGoto(BFPPToken):
             else:
                 return "<" * (-delta)
         else:
-            raise RuntimeError("Memory location " + self.location + " not found!")
+            raise RuntimeError("Memory location " + self.location +
+                               " not found!")
+
 
 class DeclareMacro(BFPPToken):
     def __init__(self, name, args, content):
@@ -167,17 +170,22 @@ class DeclareMacro(BFPPToken):
         self.content = content
 
     def __str__(self):
-        return "define " + self.name + str(self.args) + "{" + str(self.content) + "}"
+        return "define " + self.name + str(self.args) + "{" + str(
+            self.content) + "}"
 
     def __repr__(self):
-        return "Define(name=" + self.name + ",args=" + repr(self.args) + ",content=" + repr(self.content) + ")"
+        return "Define(name=" + self.name + ",args=" + repr(
+            self.args) + ",content=" + repr(self.content) + ")"
 
     def into_bf(self, ctx):
         if self.name in ctx.macros.keys():
-            raise ValueError(str(self.name) + " is already defined as " + str(ctx.macros[self.name]))
+            raise ValueError(
+                str(self.name) + " is already defined as " +
+                str(ctx.macros[self.name]))
 
         ctx.macros[self.name] = self
         return ""
+
 
 class InvokeMacro(BFPPToken):
     def __init__(self, name, args):
@@ -189,7 +197,8 @@ class InvokeMacro(BFPPToken):
         return "invoke " + self.name + "(" + ",".join(self.args) + ")"
 
     def __repr__(self):
-        return "Invoke(name=" + self.name + ",args=(" + ",".join(self.args) + ")"
+        return "Invoke(name=" + self.name + ",args=(" + ",".join(
+            self.args) + ")"
 
     def into_bf(self, ctx):
         if self.name not in ctx.macros.keys():
@@ -197,7 +206,8 @@ class InvokeMacro(BFPPToken):
 
         fn = ctx.macros[self.name]
         if len(self.args) != len(fn.args.locations):
-            raise ValueError("Wrong number of arguments in call to " + self.name + "!")
+            raise ValueError("Wrong number of arguments in call to " +
+                             self.name + "!")
 
         fn_ctx = Context()
         fn_ctx.current_ptr = ctx.current_ptr
@@ -207,7 +217,8 @@ class InvokeMacro(BFPPToken):
         for i in range(len(self.args)):
             var_name = self.args[i]
             arg_name = fn.args.locations[i]
-            fn_ctx.locations_with_idxs[arg_name] = ctx.locations_with_idxs[var_name]
+            fn_ctx.locations_with_idxs[arg_name] = ctx.locations_with_idxs[
+                var_name]
 
         # Go to the active arg in the function
         goto = LocGoto(fn.args.locations[fn.args.active_idx])
@@ -219,6 +230,7 @@ class InvokeMacro(BFPPToken):
         ctx.current_ptr = fn_ctx.current_ptr
 
         return code
+
 
 class AssumeStable(BFPPToken):
     def __init__(self, inner):

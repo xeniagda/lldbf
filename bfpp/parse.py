@@ -55,6 +55,7 @@ COMMENT: "/*" /(.|\n)*?/ "*/"
 
 parser = Lark(grammar, start="bfpp")
 
+
 class ParseTransformer(Transformer):
     def bfpp(self, blocks):
         return TokenList(blocks)
@@ -107,6 +108,7 @@ class ParseTransformer(Transformer):
         code = args[0]
 
         return AssumeStable(code)
+
 
 if __name__ == "__main__":
     res = parser.parse("""
