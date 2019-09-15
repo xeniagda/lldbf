@@ -11,6 +11,14 @@ class Context:
     def __str__(self):
         return "Context(locs=" + str(self.locations_with_idxs) + ", ptr=" + str(self.current_ptr) + ")"
 
+    def clone(self):
+        res = Context()
+        res.locations_with_idxs = self.locations_with_idxs.copy()
+        res.current_ptr = self.current_ptr
+        res.macros = self.macros.copy()
+
+        return res
+
 
 class BFPPToken(ABC):
     @abstractmethod
@@ -210,6 +218,22 @@ class InvokeMacro(BFPPToken):
         ctx.current_ptr = fn_ctx.current_ptr
 
         return code
+
+class AssumeStable(BFPPToken):
+    def __init__(self, inner):
+        super().__init__()
+        self.inner = inner
+
+    def __str__(self, ctx):
+        return "stable (" + str(self.inner) + ")"
+
+    def __repr__(self):
+        return "AssumeStable(" + repr(self.inner) + ")"
+
+    def into_bf(self, ctx):
+        inner_code = self.inner.into_bf(ctx.clone())
+        return inner_code
+
 
 if __name__ == "__main__":
     code = TokenList([

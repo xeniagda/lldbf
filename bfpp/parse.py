@@ -10,6 +10,7 @@ bfpp: bfpp_block+
            | loc_goto
            | dec_macro
            | inv_macro
+           | stable_ptr
 
 locname: /[\w\d_]+/
 
@@ -40,6 +41,8 @@ bf_loop: "[" bfpp "]"
                | ">"
                | "."
                | ","
+
+stable_ptr: "stable" "{" bfpp "}"
 
 COMMENT: "/*" /(.|\n)*?/ "*/"
        | "//" /.*/
@@ -100,18 +103,34 @@ class ParseTransformer(Transformer):
 
         return InvokeMacro(fn_name, args_for_function)
 
+    def stable_ptr(self, args):
+        code = args[0]
+
+        return AssumeStable(code)
+
 if __name__ == "__main__":
     res = parser.parse("""
-    def inc_all (?>a b c) {
-        (!a) +
-        (!b) +
-        (!c) +
+    def print_clear_zts (?>start) {
+        (!start) [-]
+
+        stable {
+            >
+            [.>]<
+            [<]
+        }
     }
 
+    >>>
     (?x >y i j k z)
-    inv inc_all (z y x)
+    (!x) +69
+    (!i) +65
+    (!j) +66
+    (!k) +67
+    (!z) +0
 
-    (!i) -
+    inv print_clear_zts(y)
+    (!x) .
+
     """)
     print(res)
     print(res.pretty())
