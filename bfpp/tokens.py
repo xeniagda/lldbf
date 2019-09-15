@@ -94,7 +94,7 @@ class Repetition(BFPPToken):
         self.inner = inner
         self.count = count
 
-    def __str__(self, ctx):
+    def __str__(self):
         return "(" + str(self.inner) + ") * " + str(self.count)
 
     def __repr__(self):
@@ -113,7 +113,7 @@ class LocDec(BFPPToken):
         self.locations = locations
         self.active_idx = active_idx
 
-    def __str__(self, ctx):
+    def __str__(self):
         return \
             "(?" + \
             " ".join(
@@ -140,7 +140,7 @@ class LocGoto(BFPPToken):
         super().__init__()
         self.location = loc
 
-    def __str__(self, ctx):
+    def __str__(self):
         return "(!" + self.location + ")"
 
     def __repr__(self):
@@ -165,7 +165,7 @@ class DeclareMacro(BFPPToken):
         self.args = args
         self.content = content
 
-    def __str__(self, ctx):
+    def __str__(self):
         return "define " + self.name + str(self.args) + "{" + str(self.content) + "}"
 
     def __repr__(self):
@@ -184,7 +184,7 @@ class InvokeMacro(BFPPToken):
         self.name = name
         self.args = args
 
-    def __str__(self, ctx):
+    def __str__(self):
         return "invoke " + self.name + "(" + ",".join(self.args) + ")"
 
     def __repr__(self):
@@ -224,7 +224,7 @@ class AssumeStable(BFPPToken):
         super().__init__()
         self.inner = inner
 
-    def __str__(self, ctx):
+    def __str__(self):
         return "stable (" + str(self.inner) + ")"
 
     def __repr__(self):
