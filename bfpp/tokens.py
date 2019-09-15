@@ -264,19 +264,30 @@ INIT_MACROS = {}
 for i in range(256):
     (x, y, z, k) = precomp_xyzk_list[i]
 
-    fn_body = TokenList([
-        LocGoto("tmp"),
-        inc_by(x),
-        BFLoop(
-            TokenList([
-                LocGoto("res"),
-                inc_by(y),
-                LocGoto("tmp"),
-                inc_by(-z),
-            ])),
-        LocGoto("res"),
-        inc_by(k),
-    ])
+    if y == z:
+        fn_body = TokenList([
+            LocGoto("res"),
+            inc_by(k+x),
+        ])
+    elif y == 0:
+        fn_body = TokenList([
+            LocGoto("res"),
+            inc_by(k),
+        ])
+    else:
+        fn_body = TokenList([
+            LocGoto("tmp"),
+            inc_by(x),
+            BFLoop(
+                TokenList([
+                    LocGoto("res"),
+                    inc_by(y),
+                    LocGoto("tmp"),
+                    inc_by(-z),
+                ])),
+            LocGoto("res"),
+            inc_by(k),
+        ])
 
     args = LocDec(["res", "tmp"], 1)
 
@@ -285,4 +296,4 @@ for i in range(256):
 
 if __name__ == "__main__":
 
-    print(INIT_MACROS["set20"])
+    print(INIT_MACROS["add5"])
