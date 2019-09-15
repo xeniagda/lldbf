@@ -1,6 +1,7 @@
 from sys import argv
 from preproc import preproc_file
 from parse import *
+from postproc import postproc
 
 if len(argv) == 2:
     # Read file
@@ -11,4 +12,4 @@ else:
 
 res = parser.parse(code)
 tokens = ParseTransformer().transform(res)
-print(tokens.into_bf(Context()))
+print(postproc(tokens.into_bf(Context())))
