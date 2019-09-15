@@ -294,6 +294,9 @@ for i in range(256):
     fn = DeclareMacro("add" + str(i), args, fn_body)
     INIT_MACROS["add" + str(i)] = fn
 
-if __name__ == "__main__":
+    dec_n = 256 - i
+    if i == 0:
+        dec_n = 0
+    fn = DeclareMacro("dec" + str(dec_n), args, fn_body)
+    INIT_MACROS["dec" + str(dec_n)] = fn
 
-    print(INIT_MACROS["add5"])

@@ -69,5 +69,7 @@ inv copy(b c tmp)
 will be `0` after. Uses the following construct: `(!tmp) +X [(!n) +Y (!tmp) -Z] (!n) +K` for some
 numbers X, Y, Z, K.
 
+`dec0(n tmp)`...`dec255(n tmp)`: same as above but decrease.
+
 **Prepreprocessor:**
 The `#include filename.bfpp` copies the code of another file into that place.
