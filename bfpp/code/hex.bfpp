@@ -3,10 +3,7 @@
 
 (? >input denom div_res tmp2 tmp1 mod_res)
 
-(!input) +4 [
-    (!denom) +4
-    (!input) -
-]
+inv add16(denom input)
 
 (!input) , [
     inv divmod(input denom div_res mod_res tmp1 tmp2)
@@ -17,10 +14,7 @@
     inv digit2hex(mod_res tmp1 tmp2)
     (!mod_res) . [-]
 
-    (!tmp1) +4 [
-        (!tmp2) +8
-        (!tmp1) -
-    ]
+    inv add32(tmp2 tmp1)
     (!tmp2) . [-]
 
     (!input) ,

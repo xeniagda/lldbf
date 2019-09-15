@@ -17,7 +17,7 @@ def digit2hex(? >n tmp1 tmp2) {
 
     // Check if 10 <= n <= 16 same as checkng 0 <= n-10 <= 6
 
-    (!n) -10
+    inv dec10(n tmp1)
 
     (
         // Copy n to tmp1
@@ -40,15 +40,12 @@ def digit2hex(? >n tmp1 tmp2) {
 
         // If tmp2 == 1, set n <- n + 7
         (!tmp2) [
-            (!n) +7
+            inv add7(n tmp1)
             (!tmp2) [-]
         ]
         (!n) -
     ) 6
 
     // Increase n by 64 = 8*8
-    (!tmp1) +8 [
-        (!n) +8
-        (!tmp1) -
-    ]
+    inv add64(n tmp1)
 }
