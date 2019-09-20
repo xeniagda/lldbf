@@ -1,0 +1,37 @@
+#include divmod.bfpp
+
+// Assumes tmp1 == tmp2 == div == mod == 0
+// Sets n = 0
+def print10(? >n divider div mod tmp1 tmp2) {
+    // Take n divmod 100
+    inv add100(divider tmp1)
+
+    inv divmod(n divider div mod tmp1 tmp2)
+
+    // If div != 0, print div
+    (!div) [
+        // Print div = n / 100
+        inv add48(div tmp1)
+        (!div) . [-]
+    ]
+
+    // Take mod divmod 10
+    inv dec90(divider tmp1)
+
+    // Reuse n as the result for the mod
+    inv divmod(mod divider div n tmp1 tmp2)
+
+    // If div != 0, print div
+    (!div) [
+        // Print div = n % 100 / 10
+        inv add48(div tmp1)
+        (!div) . [-]
+    ]
+    inv add48(n tmp1)
+    (!n) . [-]
+}
+
+(? >n tmp1 tmp2 tmp3 tmp4 tmp5)
+inv add211(n tmp1)
+
+inv print10(n tmp1 tmp2 tmp3 tmp4 tmp5)
