@@ -208,14 +208,33 @@ def pretty_print_code_slice(units,
 
     return lines
 
+import sys
+sys.path.append('bfpp')
+from preproc import preproc_file
+from parse import *
+from postproc import postproc
 
-if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        code_str = open(sys.argv[1]).read()
+def read_units(args):
+    if len(args) == 2 and args[0] == "-c":
+        code = preproc_file(args[1])
+
+        res = parser.parse(code)
+        tokens = ParseTransformer().transform(res)
+        code_str = postproc(tokens.into_bf(Context()))
+    elif len(args) == 1:
+        code_str = open(args[0]).read()
+    else:
+        print("Please invoke with file or with -c file")
+        exit()
 
     code_units = parse_code(code_str)
+    return code_units
 
-    print(code_units)
+if __name__ == "__main__":
+    instructions_total, insturctions_since_break = 0, 0
+
+    code_units = read_units(sys.argv[1:])
+
     for graph, line, cont in pretty_print_code_slice(code_units,
                                                      0,
                                                      len(code_units),
@@ -244,6 +263,7 @@ if __name__ == "__main__":
         global breakpoints, IP, output, step_once, last_line, input_feed, memory
 
         print("Output:", output)
+        print("Has run {} instructions, {} since last break".format(instructions_total, insturctions_since_break))
         print("MP=", hex(MP))
 
         for graph, line, cont in pretty_print_code_slice(code_units,
@@ -434,7 +454,9 @@ if __name__ == "__main__":
     output = []
 
     def run_instruction():
-        global IP, MP, output, input, input_feed
+        global IP, MP, output, input, input_feed, instructions_total, insturctions_since_break
+        instructions_total += 1
+        insturctions_since_break += 1
         if code_units[IP].typ == Unit.INCDEC:
             set_mem(MP, (get_mem(MP) + code_units[IP].param) % 256)
             IP += 1
@@ -477,10 +499,12 @@ if __name__ == "__main__":
             if IP in breakpoints:
                 print("\nHit breakpoint {}".format(IP))
                 menu()
+                insturctions_since_break = 0
 
             if step_once:
                 step_once = False
                 menu()
+                insturctions_since_break = 0
 
             if IP == len(code_units):
                 break
