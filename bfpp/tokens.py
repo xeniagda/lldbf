@@ -1,38 +1,117 @@
 from abc import ABC, abstractmethod
 from add_n_gen import precomp_xyzk_list
 
+MULTILINE_CTX = True
+SHOW_CTX_STACK = True
+SHOW_MACROS = False
+SHOW_KNOWN = True
+
+# TODO: Create some kind of "invalidation id" to keep track of invalidations to the variable
+# locations
+
+class LocalContext:
+    def __init__(self, named_locations):
+        # origin = 0
+        self.current_ptr = 0
+        self.modified_cells = []
+
+        self.named_locations = named_locations
+
+    def is_stable(self):
+        return self.current_ptr == 0
+
+    def copy(self):
+        res = LocalContext(self.named_locations.copy())
+        res.modified_cells = self.modified_cells
+
+        return res
+
+    def __str__(self):
+        return "LocalContext(ptr={},mod={},locs={})".format(
+            self.current_ptr,
+            self.modified_cells,
+            self.named_locations
+        )
+
+    def __repr__(self):
+        return "LocalContext(ptr={},mod={},locs={})".format(
+            self.current_ptr,
+            self.modified_cells,
+            self.named_locations
+        )
 
 class Context:
     def __init__(self):
-        self.lwi_list = [{}]
-        self.org_id = 0
-        self.offset = 0
+        self.lctx_stack = [LocalContext({})]
 
         self.macros = INIT_MACROS.copy()
 
+        self.known_values = {}
+
     def __str__(self):
-        return "Context(loc=#{}+{}, lwi={})".format(self.org_id, self.offset,
-                                                    self.locations_with_idxs())
+        if MULTILINE_CTX:
+            fmt = """\
+Context(
+    {ctx_fmt}={ctx_val},
+    {mac_fmt}={mac_val},
+    {knw_fmt}={knw_val},
+)"""
+        else:
+            fmt = "Context({ctx_fmt}={ctx_val},{mac_fmt}={mac_val},{knw_fmt}={knw_fmt},)"
 
-    def locations_with_idxs(self):
-        return self.lwi_list[self.org_id]
+        if SHOW_CTX_STACK:
+            ctx_fmt = "lctx_stack"
+            ctx_val = str(self.lctx_stack)
+        else:
+            ctx_fmt = "lctx"
+            ctx_val = str(self.lctx_stack[-1])
 
-    def reorigin_empty(self):
-        self.org_id = len(self.lwi_list)
-        self.offset = 0
-        self.lwi_list.append({})
+        if SHOW_MACROS:
+            mac_fmt = "macros"
+            mac_val = str(self.macros)
+        else:
+            mac_fmt = "#mactros"
+            mac_val = len(self.macros)
 
-    def reorigin_copy(self):
-        last_lwi = self.lwi_list[self.org_id]
+        if SHOW_KNOWN:
+            knw_fmt = "known"
+            knw_val = str(self.known_values)
+        else:
+            knw_fmt = "#known"
+            knw_val = len(self.known_values)
 
-        self.org_id = len(self.lwi_list)
+        return fmt.format(
+            ctx_fmt=ctx_fmt,
+            ctx_val=ctx_val,
+            mac_fmt=mac_fmt,
+            mac_val=mac_val,
+            knw_fmt=knw_fmt,
+            knw_val=knw_val,
+        )
 
-        self.lwi_list.append(
-            {loc: last_lwi[loc] - self.offset
-             for loc in last_lwi.keys()})
+    def lctx(self):
+        return self.lctx_stack[-1]
 
-        self.offset = 0
+    def new_lctx(self):
+        offset = self.lctx().current_ptr
+        offset_vals = {
+            name: index - offset
+            for (name, index) in self.lctx().named_locations.items()
+        }
+        return LocalContext(offset_vals)
 
+    def copy(self):
+        res = Context()
+        res.lctx_stack = [lctx.copy() for lctx in self.lctx_stack]
+        res.macros = self.macros.copy()
+        res.known_values = self.known_values.copy()
+
+        return res
+
+    def pop_lctx(self):
+        diff = self.lctx().current_ptr
+        self.lctx_stack.pop()
+        self.lctx().current_ptr += diff
 
 class BFPPToken(ABC):
     @abstractmethod
@@ -51,9 +130,9 @@ class BFToken(BFPPToken):
 
     def into_bf(self, ctx):
         if self.token == ">":
-            ctx.offset += 1
+            ctx.lctx().current_ptr += 1
         elif self.token == "<":
-            ctx.offset -= 1
+            ctx.lctx().current_ptr -= 1
 
         return self.token
 
@@ -88,25 +167,22 @@ class BFLoop(BFPPToken):
         self.inner = inner
 
     def into_bf(self, ctx):
-        last_id = ctx.org_id
-        last_offset = ctx.offset
+        old_ctx = ctx.copy()
 
-        ctx.reorigin_copy()
+        new_lctx = ctx.new_lctx()
+        ctx.lctx_stack.append(new_lctx)
 
-        new_id = ctx.org_id
+        loop_content = self.inner.into_bf(ctx)
+        if not ctx.lctx().is_stable():
+            # Loop is not stable, remake without any named locations
+            new_lctx = LocalContext({})
+            old_ctx.lctx_stack.append(new_lctx)
 
-        inner_bf = self.inner.into_bf(ctx)
-        if ctx.org_id == new_id and ctx.offset == 0:
-            # The loop is stable, go back to old state
-            ctx.org_id = last_id
-            ctx.offset = last_offset
-        else:
-            # The loop moved, making it unstable. The loop might have depended on some now unstable
-            # memory location, which makes inner_bf invalid. We will remake it
-            ctx.reorigin_empty()
-            inner_bf = self.inner.into_bf(ctx)
+            loop_content = self.inner.into_bf(old_ctx)
+            # Hopefully the inner does not mess with the last lctx
 
-        return "[" + inner_bf + "]"
+        ctx.pop_lctx()
+        return "[" + loop_content + "]"
 
     def __str__(self):
         return "[" + str(self.inner) + "]"
@@ -157,7 +233,7 @@ class LocDec(BFPPToken):
     def into_bf(self, ctx):
         for i, name in enumerate(self.locations):
             delta_ptr = i - self.active_idx
-            ctx.locations_with_idxs()[name] = ctx.offset + delta_ptr
+            ctx.lctx().named_locations[name] = ctx.lctx().current_ptr + delta_ptr
 
         return ""
 
@@ -174,10 +250,10 @@ class LocGoto(BFPPToken):
         return "LocGoto(" + self.location + ")"
 
     def into_bf(self, ctx):
-        if self.location in ctx.locations_with_idxs():
-            mem_idx = ctx.locations_with_idxs()[self.location]
-            delta = mem_idx - ctx.offset
-            ctx.offset = mem_idx
+        if self.location in ctx.lctx().named_locations:
+            mem_idx = ctx.lctx().named_locations[self.location]
+            delta = mem_idx - ctx.lctx().current_ptr
+            ctx.lctx().current_ptr = mem_idx
             if delta > 0:
                 return ">" * delta
             else:
@@ -234,19 +310,15 @@ class InvokeMacro(BFPPToken):
             raise ValueError("Wrong number of arguments in call to " +
                              self.name + "!")
 
-        old_org = ctx.org_id
-        old_offset = ctx.offset
-        old_lwi = ctx.locations_with_idxs()
-
-        ctx.reorigin_empty()
-        new_id = ctx.org_id
-        ctx.offset = old_offset
-
+        arg_locs = {}
         # Assign addresses for arguments
         for i in range(len(self.args)):
             var_name = self.args[i]
             arg_name = fn.args.locations[i]
-            ctx.locations_with_idxs()[arg_name] = old_lwi[var_name]
+            arg_locs[arg_name] = ctx.lctx().named_locations[var_name] - ctx.lctx().current_ptr
+
+        new_lctx = LocalContext(arg_locs)
+        ctx.lctx_stack.append(new_lctx)
 
         # Go to the active arg in the function
         goto = LocGoto(fn.args.locations[fn.args.active_idx])
@@ -255,10 +327,8 @@ class InvokeMacro(BFPPToken):
         # Invoke function
         code += fn.content.into_bf(ctx)
 
-        if ctx.org_id == new_id:
-            ctx.org_id = old_org
-        else:
-            ctx.reorigin_empty()
+        # Pop the function ctx
+        ctx.pop_lctx()
 
         return code
 
