@@ -128,6 +128,8 @@ class BFPPToken(ABC):
 class BFToken(BFPPToken):
     def __init__(self, span, token):
         super().__init__(span)
+        assert token in "+-.,<>"
+
         self.token = token
 
     def into_bf(self, ctx):
@@ -325,7 +327,7 @@ class InvokeMacro(BFPPToken):
         if len(self.args) != len(fn.args.locations):
             er = Error(
                 self.span,
-                msg="Excpected {} variables, got {}".format(len(fn.args.locations), len(self.args)),
+                msg="Expected {} variables, got {}".format(len(fn.args.locations), len(self.args)),
             )
             er.show()
             exit()
@@ -335,6 +337,16 @@ class InvokeMacro(BFPPToken):
         for i in range(len(self.args)):
             var_name = self.args[i]
             arg_name = fn.args.locations[i]
+
+            if var_name not in ctx.lctx().named_locations:
+                er = Error(
+                    self.span,
+                    msg="Memory location " + var_name + " not found!",
+                    note="Defined locations: " + ", ".join(ctx.lctx().named_locations.keys())
+                )
+                er.show()
+                exit()
+
             arg_locs[arg_name] = ctx.lctx().named_locations[var_name] - ctx.lctx().current_ptr
 
         new_lctx = LocalContext(arg_locs)
