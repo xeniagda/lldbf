@@ -1,5 +1,6 @@
 from tokens import *
-from lark import Lark, Transformer
+from lark import Lark, Transformer, v_args
+from bfppfile import BFPPFile, Span
 
 grammar = r"""
 bfpp: bfpp_block+
@@ -50,10 +51,16 @@ COMMENT: "/*" /(.|\n)*?/ "*/"
 %ignore WS
 """
 
-parser = Lark(grammar, start="bfpp")
+parser = Lark(grammar, start="bfpp", propagate_positions=True)
 
 
 class ParseTransformer(Transformer):
+    def __init__(self, bfile):
+        self.bfile = bfile
+
+    def meta2span(self, meta):
+        return Span(self.bfile, meta.start_pos, meta.end_pos)
+
     def bfpp(self, blocks):
         return TokenList(blocks)
 
@@ -101,18 +108,22 @@ class ParseTransformer(Transformer):
 
         return InvokeMacro(fn_name, args_for_function)
 
+def parse(filename, code):
+    bfile = BFPPFile(filename, code)
 
+    parsed = parser.parse(code)
+    tokens = ParseTransformer(bfile).transform(parsed)
+
+    return tokens
 
 if __name__ == "__main__":
-    res = parser.parse("""
+    tokens = parse("print_zts.bfpp", """
     def print_clear_zts (?>start) {
         (!start) [-]
 
-        {
-            >
-            [.>]<
-            [<]
-        }
+        >
+        [.>]<
+        [<]
     }
 
     >>>
@@ -125,9 +136,5 @@ if __name__ == "__main__":
     inv print_clear_zts(y)
 
     """)
-    print(res)
-    print(res.pretty())
-
-    tokens = ParseTransformer().transform(res)
     print(repr(tokens))
     print(tokens.into_bf(Context()))
