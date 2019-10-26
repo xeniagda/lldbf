@@ -31,7 +31,13 @@ class BFPPFile:
 
         return (start, pos - self.line_idxs[start])
 
-    def show_span_ascii_art(self, start, end):
+class Span:
+    def __init__(self, bfile, start, end):
+        self.bfile = bfile
+        self.start = start
+        self.end = end
+
+    def show_ascii_art(self):
         # Shows a span in the following format:
         # filename.bf
         # ,----------------V
@@ -47,23 +53,23 @@ class BFPPFile:
         # 57 | Here's a one line span: hello world! Now it's done
         #                              ^----------^
 
-        start_line, start_offset = self.line_offset_for_pos(start)
-        end_line, end_offset = self.line_offset_for_pos(end)
+        start_line, start_offset = self.bfile.line_offset_for_pos(self.start)
+        end_line, end_offset = self.bfile.line_offset_for_pos(self.end)
 
-        lines = self.lines[start_line : end_line + 1]
+        lines = self.bfile.lines[start_line : end_line + 1]
 
         number_width = len(str(end_line + 1))
         l_space = number_width + 5
 
 
-        first_line = "In file {}, lines {}..{}:".format(self.name, start_line + 1, end_line + 1)
+        first_line = "In file {}, lines {}..{}:".format(self.bfile.name, start_line + 1, end_line + 1)
         second_line = "," + "-" * (l_space - 1 + start_offset) + "V"
         last_line = "`" + "-" * (l_space - 1 + end_offset - 1) + "^"
 
         inbetween = []
         for line in range(start_line, end_line + 1):
             line_st = lpad(str(line + 1), number_width)
-            inbetween.append("| {} | {}".format(line_st, self.lines[line]))
+            inbetween.append("| {} | {}".format(line_st, self.bfile.lines[line]))
 
         if len(inbetween) > 5:
             inbetween = inbetween[:2] + ["| ..."] + inbetween[-2:]
@@ -82,8 +88,10 @@ if __name__ == "__main__":
     start = random.randrange(0, len(f))
     end = random.randrange(start + 1, len(f) + 1)
 
+    span = Span(bf, start, end)
+
     print(f[start-5:start] + "*" + f[start] + "*" + f[start+1:start+6])
     print(f[end-5:end] + "*" + f[end] + "*" + f[end+1:end+6])
     print()
 
-    print("\n".join(bf.show_span_ascii_art(start, end)))
+    print("\n".join(span.show_ascii_art()))
