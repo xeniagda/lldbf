@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from add_n_gen import precomp_xyzk_list
+from bfppfile import Span, BFPPFile
 
 MULTILINE_CTX = True
 SHOW_CTX_STACK = True
@@ -115,8 +116,8 @@ Context(
 
 class BFPPToken(ABC):
     @abstractmethod
-    def __init__(self):
-        pass
+    def __init__(self, span):
+        self.span = span
 
     @abstractmethod
     def into_bf(self, ctx):
@@ -124,8 +125,8 @@ class BFPPToken(ABC):
 
 
 class BFToken(BFPPToken):
-    def __init__(self, token):
-        super().__init__()
+    def __init__(self, span, token):
+        super().__init__(span)
         self.token = token
 
     def into_bf(self, ctx):
@@ -144,8 +145,8 @@ class BFToken(BFPPToken):
 
 
 class TokenList(BFPPToken):
-    def __init__(self, tokens):
-        super().__init__()
+    def __init__(self, span, tokens):
+        super().__init__(span)
         self.tokens = tokens
 
     def into_bf(self, ctx):
@@ -162,8 +163,8 @@ class TokenList(BFPPToken):
 
 
 class BFLoop(BFPPToken):
-    def __init__(self, inner):
-        super().__init__()
+    def __init__(self, span, inner):
+        super().__init__(span)
         self.inner = inner
 
     def into_bf(self, ctx):
@@ -192,8 +193,8 @@ class BFLoop(BFPPToken):
 
 
 class Repetition(BFPPToken):
-    def __init__(self, inner, count):
-        super().__init__()
+    def __init__(self, span, inner, count):
+        super().__init__(span)
         self.inner = inner
         self.count = count
 
@@ -211,8 +212,8 @@ class Repetition(BFPPToken):
 
 
 class LocDec(BFPPToken):
-    def __init__(self, locations, active_idx):
-        super().__init__()
+    def __init__(self,  span, locations, active_idx):
+        super().__init__(span)
         self.locations = locations
         self.active_idx = active_idx
 
@@ -239,8 +240,8 @@ class LocDec(BFPPToken):
 
 
 class LocGoto(BFPPToken):
-    def __init__(self, loc):
-        super().__init__()
+    def __init__(self, span, loc):
+        super().__init__(span)
         self.location = loc
 
     def __str__(self):
@@ -264,8 +265,8 @@ class LocGoto(BFPPToken):
 
 
 class DeclareMacro(BFPPToken):
-    def __init__(self, name, args, content):
-        super().__init__()
+    def __init__(self, span, name, args, content):
+        super().__init__(span)
         self.name = name
         self.args = args
         self.content = content
@@ -289,8 +290,8 @@ class DeclareMacro(BFPPToken):
 
 
 class InvokeMacro(BFPPToken):
-    def __init__(self, name, args):
-        super().__init__()
+    def __init__(self, span, name, args):
+        super().__init__(span)
         self.name = name
         self.args = args
 
@@ -321,7 +322,7 @@ class InvokeMacro(BFPPToken):
         ctx.lctx_stack.append(new_lctx)
 
         # Go to the active arg in the function
-        goto = LocGoto(fn.args.locations[fn.args.active_idx])
+        goto = LocGoto(self.span, fn.args.locations[fn.args.active_idx])
         code = goto.into_bf(ctx)
 
         # Invoke function
@@ -332,15 +333,16 @@ class InvokeMacro(BFPPToken):
 
         return code
 
+PREGEN_SPAN = Span(BFPPFile("PREGENERATED", ""), 0, 0)
 
 def inc_by(n):
     n = n % 256
     if n == 0:
-        return TokenList([])
+        return TokenList(PREGEN_SPAN, [])
     if n < 128:
-        return Repetition(BFToken("+"), n)
+        return Repetition(None, BFToken(PREGEN_SPAN, "+"), n)
     else:
-        return Repetition(BFToken("-"), 256 - n)
+        return Repetition(None, BFToken(PREGEN_SPAN, "-"), 256 - n)
 
 
 INIT_MACROS = {}
@@ -350,45 +352,46 @@ for i in range(256):
     (x, y, z, k) = precomp_xyzk_list[i]
 
     if y == z:
-        fn_body = TokenList([
-            LocGoto("res"),
+        fn_body = TokenList(PREGEN_SPAN, [
+            LocGoto(PREGEN_SPAN, "res"),
             inc_by(k + x),
         ])
     elif y == 0:
-        fn_body = TokenList([
-            LocGoto("res"),
+        fn_body = TokenList(PREGEN_SPAN, [
+            LocGoto(PREGEN_SPAN, "res"),
             inc_by(k),
         ])
     else:
-        fn_body = TokenList([
-            LocGoto("tmp"),
+        fn_body = TokenList(PREGEN_SPAN, [
+            LocGoto(PREGEN_SPAN, "tmp"),
             inc_by(x),
             BFLoop(
-                TokenList([
-                    LocGoto("res"),
+                None,
+                TokenList(PREGEN_SPAN, [
+                    LocGoto(PREGEN_SPAN, "res"),
                     inc_by(y),
-                    LocGoto("tmp"),
+                    LocGoto(PREGEN_SPAN, "tmp"),
                     inc_by(-z),
                 ])),
-            LocGoto("res"),
+            LocGoto(PREGEN_SPAN, "res"),
             inc_by(k),
         ])
 
-    args = LocDec(["res", "tmp"], 1)
+    args = LocDec(PREGEN_SPAN, ["res", "tmp"], 1)
 
-    fn = DeclareMacro("add" + str(i), args, fn_body)
+    fn = DeclareMacro(PREGEN_SPAN, "add" + str(i), args, fn_body)
     INIT_MACROS["add" + str(i)] = fn
 
     dec_n = 256 - i
     if i == 0:
         dec_n = 0
-    fn = DeclareMacro("dec" + str(dec_n), args, fn_body)
+    fn = DeclareMacro(PREGEN_SPAN, "dec" + str(dec_n), args, fn_body)
     INIT_MACROS["dec" + str(dec_n)] = fn
 
 if __name__ == "__main__":
     ctx = Context()
-    dec = LocDec(["a", "b", "c"], 1)
-    goto = LocGoto("c")
+    dec = LocDec(PREGEN_SPAN, ["a", "b", "c"], 1)
+    goto = LocGoto(PREGEN_SPAN, "c")
 
-    code = TokenList([dec, goto]).into_bf(ctx)
+    code = TokenList(PREGEN_SPAN, [dec, goto]).into_bf(ctx)
     print(code, ctx)

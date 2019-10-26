@@ -61,20 +61,24 @@ class ParseTransformer(Transformer):
     def meta2span(self, meta):
         return Span(self.bfile, meta.start_pos, meta.end_pos)
 
-    def bfpp(self, blocks):
-        return TokenList(blocks)
+    @v_args(meta=True)
+    def bfpp(self, blocks, meta):
+        return TokenList(self.meta2span(meta), blocks)
 
     def bfpp_block(self, args):
         return args
 
-    def repetition(self, args):
-        return Repetition(args[0], int(args[1]))
+    @v_args(meta=True)
+    def repetition(self, args, meta):
+        return Repetition(self.meta2span(meta), args[0], int(args[1]))
 
-    def bf_basic_token(self, args):
-        return BFToken(args[0])
+    @v_args(meta=True)
+    def bf_basic_token(self, args, meta):
+        return BFToken(self.meta2span(meta), args[0])
 
-    def bf_loop(self, args):
-        return BFLoop(args[0])
+    @v_args(meta=True)
+    def bf_loop(self, args, meta):
+        return BFLoop(self.meta2span(meta), args[0])
 
     def locname(self, args):
         return args[0].value
@@ -85,28 +89,32 @@ class ParseTransformer(Transformer):
     def locname_active(self, args):
         return ("ln_a", args[0])
 
-    def loc_dec(self, args):
+    @v_args(meta=True)
+    def loc_dec(self, args, meta):
         locs = []
         active = -1
         for i, x in enumerate(args):
             if x[0] == "ln_a":
                 active = i
             locs.append(x[1])
-        return LocDec(locs, active)
+        return LocDec(self.meta2span(meta), locs, active)
 
-    def loc_goto(self, args):
-        return LocGoto(args[0])
+    @v_args(meta=True)
+    def loc_goto(self, args, meta):
+        return LocGoto(self.meta2span(meta), args[0])
 
-    def dec_macro(self, args):
+    @v_args(meta=True)
+    def dec_macro(self, args, meta):
         name, args, content = args
 
-        return DeclareMacro(name, args, content)
+        return DeclareMacro(self.meta2span(meta), name, args, content)
 
-    def inv_macro(self, args):
+    @v_args(meta=True)
+    def inv_macro(self, args, meta):
         fn_name = args[0]
         args_for_function = args[1:]
 
-        return InvokeMacro(fn_name, args_for_function)
+        return InvokeMacro(self.meta2span(meta), fn_name, args_for_function)
 
 def parse(filename, code):
     bfile = BFPPFile(filename, code)
@@ -126,7 +134,7 @@ if __name__ == "__main__":
         [<]
     }
 
-    >>>
+    > 3
     (?x >y i j k z)
     inv add69(x y)
     inv add65(i y)
