@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from add_n_gen import precomp_xyzk_list
 from bfppfile import Span, BFPPFile
+from error import Error
 
 MULTILINE_CTX = True
 SHOW_CTX_STACK = True
@@ -260,8 +261,13 @@ class LocGoto(BFPPToken):
             else:
                 return "<" * (-delta)
         else:
-            raise RuntimeError("Memory location " + self.location +
-                               " not found!")
+            er = Error(
+                self.span,
+                msg="Memory location " + self.location + " not found!",
+                note="Defined locations: " + ", ".join(ctx.lctx().named_locations.keys())
+            )
+            er.show()
+            exit()
 
 
 class DeclareMacro(BFPPToken):
@@ -281,9 +287,12 @@ class DeclareMacro(BFPPToken):
 
     def into_bf(self, ctx):
         if self.name in ctx.macros.keys():
-            raise ValueError(
-                str(self.name) + " is already defined as " +
-                str(ctx.macros[self.name]))
+            er = Error(
+                self.span,
+                msg=str(self.name) + " is already defined as " + str(ctx.macros[self.name]),
+            )
+            er.show()
+            exit()
 
         ctx.macros[self.name] = self
         return ""
@@ -304,12 +313,22 @@ class InvokeMacro(BFPPToken):
 
     def into_bf(self, ctx):
         if self.name not in ctx.macros.keys():
-            raise ValueError(self.name + " is not defined!")
+            # TODO: Search for macros with similar names?
+            er = Error(
+                self.span,
+                msg="Macro " + self.name + " is not defined!",
+            )
+            er.show()
+            exit()
 
         fn = ctx.macros[self.name]
         if len(self.args) != len(fn.args.locations):
-            raise ValueError("Wrong number of arguments in call to " +
-                             self.name + "!")
+            er = Error(
+                self.span,
+                msg="Excpected {} variables, got {}".format(len(fn.args.locations), len(self.args)),
+            )
+            er.show()
+            exit()
 
         arg_locs = {}
         # Assign addresses for arguments
