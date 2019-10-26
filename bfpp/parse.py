@@ -1,3 +1,4 @@
+import os
 from tokens import *
 from lark import Lark, Transformer, v_args
 from bfppfile import BFPPFile, Span
@@ -11,6 +12,7 @@ bfpp: bfpp_block+
            | loc_goto
            | dec_macro
            | inv_macro
+           | directive
 
 locname: /[\w\d_]+/
 
@@ -41,6 +43,12 @@ bf_loop: "[" bfpp "]"
                | ">"
                | "."
                | ","
+
+?directive: include
+
+include: "#" "include" path
+
+?path: /[\w.]+/
 
 COMMENT: "/*" /(.|\n)*?/ "*/"
        | "//" /.*/
@@ -115,6 +123,13 @@ class ParseTransformer(Transformer):
         args_for_function = args[1:]
 
         return InvokeMacro(self.meta2span(meta), fn_name, args_for_function)
+
+    def include(self, args):
+        path = args[0]
+        folder = os.path.dirname(self.bfile.name)
+        inc_filepath = os.path.join(folder, path)
+
+        return parse(path, open(inc_filepath).read())
 
 def parse(filename, code):
     bfile = BFPPFile(filename, code)

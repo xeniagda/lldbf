@@ -1,12 +1,11 @@
 from sys import argv
-from preproc import preproc_file
 from parse import parse
 from tokens import Context
 from postproc import postproc
 
 if len(argv) == 2:
     # Read file
-    code = preproc_file(argv[1])
+    code = open(argv[1], "r").read()
 else:
     print("Please provide a file!")
     exit()
