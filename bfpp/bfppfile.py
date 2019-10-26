@@ -49,13 +49,13 @@ class Span:
     def show_ascii_art(self):
         # Shows a span in the following format:
         # filename.bf
-        # ,----------------V
-        # |  9 | row five. here the span is starting
-        # | 10 | the span continues
-        # | .. | ...
-        # | 12 | almost done!
-        # | 13 | the span ends here. no more span!
-        # `-----------------------^
+        #     ,----------------V
+        #     |  9 | row five. here the span is starting
+        #     | 10 | the span continues
+        #     | .. | ...
+        #     | 12 | almost done!
+        #     | 13 | the span ends here. no more span!
+        #     `-----------------------^
         # Returns a list of lines
         #
         # TODO: Nicer one-line spans, in this format:
@@ -70,18 +70,19 @@ class Span:
         number_width = len(str(end_line + 1))
         l_space = number_width + 5
 
+        indent = "    "
 
         first_line = "In file {}, lines {}..{}:".format(self.bfile.name, start_line + 1, end_line + 1)
-        second_line = "," + "-" * (l_space - 1 + start_offset) + "V"
-        last_line = "`" + "-" * (l_space - 1 + end_offset - 1) + "^"
+        second_line = indent + "," + "-" * (l_space - 1 + start_offset) + "V"
+        last_line = indent + "`" + "-" * (l_space - 1 + end_offset - 1) + "^"
 
         inbetween = []
         for line in range(start_line, end_line + 1):
             line_st = lpad(str(line + 1), number_width)
-            inbetween.append("| {} | {}".format(line_st, self.bfile.lines[line]))
+            inbetween.append(indent + "| {} | {}".format(line_st, self.bfile.lines[line]))
 
         if len(inbetween) > 5:
-            inbetween = inbetween[:2] + ["| ..."] + inbetween[-2:]
+            inbetween = inbetween[:2] + [indent + "| ..."] + inbetween[-2:]
 
         return [first_line, second_line] + inbetween + [last_line]
 
