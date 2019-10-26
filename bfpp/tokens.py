@@ -8,12 +8,9 @@ SHOW_CTX_STACK = True
 SHOW_MACROS = False
 SHOW_KNOWN = True
 
-# TODO: Create some kind of "invalidation id" to keep track of invalidations to the variable
-# locations
-
 class LocalContext:
-    def __init__(self, named_locations):
-        # origin = 0
+    def __init__(self, named_locations, inv_id):
+        self.inv_id = inv_id
         self.current_ptr = 0
         self.modified_cells = []
 
@@ -23,28 +20,30 @@ class LocalContext:
         return self.current_ptr == 0
 
     def copy(self):
-        res = LocalContext(self.named_locations.copy())
+        res = LocalContext(self.named_locations.copy(), self.inv_id)
         res.modified_cells = self.modified_cells
 
         return res
 
     def __str__(self):
-        return "LocalContext(ptr={},mod={},locs={})".format(
+        return "LocalContext(ptr={},mod={},locs={},inv_id={})".format(
             self.current_ptr,
             self.modified_cells,
-            self.named_locations
+            self.named_locations,
+            self.inv_id,
         )
 
     def __repr__(self):
-        return "LocalContext(ptr={},mod={},locs={})".format(
+        return "LocalContext(ptr={},mod={},locs={},inv_id={})".format(
             self.current_ptr,
             self.modified_cells,
-            self.named_locations
+            self.named_locations,
+            self.inv_id,
         )
 
 class Context:
     def __init__(self):
-        self.lctx_stack = [LocalContext({})]
+        self.lctx_stack = [LocalContext({}, 0)]
 
         self.macros = INIT_MACROS.copy()
 
@@ -100,7 +99,7 @@ Context(
             name: index - offset
             for (name, index) in self.lctx().named_locations.items()
         }
-        return LocalContext(offset_vals)
+        return LocalContext(offset_vals, self.lctx().inv_id)
 
     def copy(self):
         res = Context()
@@ -112,7 +111,13 @@ Context(
 
     def pop_lctx(self):
         diff = self.lctx().current_ptr
+        inv_id = self.lctx().inv_id
+
         self.lctx_stack.pop()
+
+        if inv_id != self.lctx().inv_id:
+            self.lctx().named_locations = {}
+
         self.lctx().current_ptr += diff
 
 class BFPPToken(ABC):
@@ -171,18 +176,18 @@ class BFLoop(BFPPToken):
         self.inner = inner
 
     def into_bf(self, ctx):
-        old_ctx = ctx.copy()
-
         new_lctx = ctx.new_lctx()
         ctx.lctx_stack.append(new_lctx)
 
         loop_content = self.inner.into_bf(ctx)
         if not ctx.lctx().is_stable():
-            # Loop is not stable, remake without any named locations
-            new_lctx = LocalContext({})
-            old_ctx.lctx_stack.append(new_lctx)
+            ctx.pop_lctx()
 
-            loop_content = self.inner.into_bf(old_ctx)
+            # Loop is not stable, remake without any named locations
+            new_lctx = LocalContext({}, ctx.lctx().inv_id + 1)
+            ctx.lctx_stack.append(new_lctx)
+
+            loop_content = self.inner.into_bf(ctx)
             # Hopefully the inner does not mess with the last lctx
 
         ctx.pop_lctx()
@@ -349,7 +354,7 @@ class InvokeMacro(BFPPToken):
 
             arg_locs[arg_name] = ctx.lctx().named_locations[var_name] - ctx.lctx().current_ptr
 
-        new_lctx = LocalContext(arg_locs)
+        new_lctx = LocalContext(arg_locs, ctx.lctx().inv_id)
         ctx.lctx_stack.append(new_lctx)
 
         # Go to the active arg in the function
