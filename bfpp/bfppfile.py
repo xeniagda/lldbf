@@ -31,6 +31,15 @@ class BFPPFile:
 
         return (start, pos - self.line_idxs[start])
 
+    def __str__(self):
+        return "BFPPFile({}, {} lines)".format(
+            self.name,
+            len(self.line_idxs),
+        )
+
+    def __repr__(self):
+        return "BFPPFile({})".format(self.name)
+
 class Span:
     def __init__(self, bfile, start, end):
         self.bfile = bfile
@@ -76,6 +85,24 @@ class Span:
 
         return [first_line, second_line] + inbetween + [last_line]
 
+    def __str__(self):
+        start_line, start_offset = self.bfile.line_offset_for_pos(self.start)
+        end_line, end_offset = self.bfile.line_offset_for_pos(self.end)
+
+        return "{}@{}:{}..{}:{}".format(
+            self.bfile.name,
+            str(start_line + 1),
+            str(start_offset),
+            str(end_line + 2),
+            str(end_offset)
+        )
+
+    def __repr__(self):
+        return "Span(bile={},start={},end={})".fromat(
+            self.bfile,
+            self.start,
+            self.end,
+        )
 
 if __name__ == "__main__":
     f = open("code/base10.bfpp").read()
