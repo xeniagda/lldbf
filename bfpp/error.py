@@ -83,3 +83,17 @@ class LoopNotStableError(BaseError):
                 return [note, note_extra]
 
             return [note]
+
+class MemNotFoundError(BaseError):
+    def __init__(self, span, varname, ctx):
+        super(MemNotFoundError, self).__init__(span)
+        self.varname = varname
+        self.ctx = ctx
+
+    def msg(self):
+        return "Could not find memory location " + f.var(self.varname)
+
+    def notes(self):
+        if len(self.ctx.lctx().named_locations) > 0:
+            return ["Defined locations: " + ", ".join(map(f.var, self.ctx.lctx().named_locations.keys()))]
+        return []

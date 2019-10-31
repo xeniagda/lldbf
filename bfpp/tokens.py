@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from add_n_gen import precomp_xyzk_list
 from bfppfile import Span, BFPPFile
-from error import Error, LoopNotStableError
+from error import *
 
 MULTILINE_CTX = True
 SHOW_CTX_STACK = True
@@ -283,10 +283,10 @@ class LocGoto(BFPPToken):
             else:
                 return "<" * (-delta)
         else:
-            er = Error(
+            er = MemNotFoundError(
                 self.span,
-                msg="Memory location `" + self.location + "` not found!",
-                note="Defined locations: " + ", ".join(ctx.lctx().named_locations.keys())
+                self.location,
+                ctx,
             )
             er.show()
             ctx.n_errors += 1
@@ -312,7 +312,7 @@ class DeclareMacro(BFPPToken):
         if self.name in ctx.macros.keys():
             er = Error(
                 self.span,
-                msg="`" + str(self.name) + "` is already defined as " + str(ctx.macros[self.name]),
+                msg="`" + str(self.name) + "` is already defined"
             )
             er.show()
             ctx.n_errors += 1
@@ -362,10 +362,10 @@ class InvokeMacro(BFPPToken):
             arg_name = fn.args.locations[i]
 
             if var_name not in ctx.lctx().named_locations:
-                er = Error(
+                er = MemNotFoundError(
                     self.span,
-                    msg="Memory location `" + var_name + "` not found!",
-                    note="Defined locations: " + ", ".join(ctx.lctx().named_locations.keys())
+                    var_name,
+                    ctx,
                 )
                 er.show()
                 ctx.n_errors += 1
