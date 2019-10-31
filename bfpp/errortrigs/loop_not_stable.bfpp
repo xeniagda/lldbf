@@ -1,0 +1,12 @@
+(?a >b c)
+
+// Case 1, move to known
+(!b) [
+    (!c)
+]
+
+// Case 2, move to unknown
+(!b) [
+    (!c) >>
+]
+

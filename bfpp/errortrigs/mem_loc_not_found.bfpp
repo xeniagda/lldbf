@@ -1,0 +1,10 @@
+(? >a b)
+
+// Case 1: no such variable
+(!c)
+
+// Case 2: variable exists, removed due to unstable loop
+
+unstable[
+    (!b)
+]

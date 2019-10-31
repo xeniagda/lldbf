@@ -1,0 +1,6 @@
+def mac(? >x y z) {
+    (!x)
+}
+
+(? >a b c)
+inv mac(a b)
