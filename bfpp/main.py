@@ -11,4 +11,9 @@ else:
     exit()
 
 tokens = parse(argv[1], code)
-print(postproc(tokens.into_bf(Context())))
+
+ctx = Context()
+res = tokens.into_bf(ctx)
+
+if ctx.n_errors == 0:
+    print(postproc(res))

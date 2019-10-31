@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from add_n_gen import precomp_xyzk_list
 from bfppfile import Span, BFPPFile
-from error import Error
+from error import Error, LoopNotStableError
 
 MULTILINE_CTX = True
 SHOW_CTX_STACK = True
@@ -49,6 +49,8 @@ class Context:
 
         self.known_values = {}
 
+        self.n_errors = 0
+
     def __str__(self):
         if MULTILINE_CTX:
             fmt = """\
@@ -56,9 +58,10 @@ Context(
     {ctx_fmt}={ctx_val},
     {mac_fmt}={mac_val},
     {knw_fmt}={knw_val},
+    n_errors={n_errors},
 )"""
         else:
-            fmt = "Context({ctx_fmt}={ctx_val},{mac_fmt}={mac_val},{knw_fmt}={knw_fmt},)"
+            fmt = "Context({ctx_fmt}={ctx_val},{mac_fmt}={mac_val},{knw_fmt}={knw_fmt},n_errors={n_errors})"
 
         if SHOW_CTX_STACK:
             ctx_fmt = "lctx_stack"
@@ -88,6 +91,7 @@ Context(
             mac_val=mac_val,
             knw_fmt=knw_fmt,
             knw_val=knw_val,
+            n_errors=self.n_errors
         )
 
     def lctx(self):
@@ -177,23 +181,6 @@ class BFLoop(BFPPToken):
         self.is_stable = is_stable
 
     def into_bf(self, ctx):
-        # new_lctx = ctx.new_lctx()
-        # ctx.lctx_stack.append(new_lctx)
-
-        # loop_content = self.inner.into_bf(ctx)
-        # if not ctx.lctx().is_stable():
-        #     ctx.pop_lctx()
-
-        #     # Loop is not stable, remake without any named locations
-        #     new_lctx = LocalContext({}, ctx.lctx().inv_id + 1)
-        #     ctx.lctx_stack.append(new_lctx)
-
-        #     loop_content = self.inner.into_bf(ctx)
-        #     # Hopefully the inner does not mess with the last lctx
-
-        # ctx.pop_lctx()
-        # return "[" + loop_content + "]"
-
         last_ctx = ctx.lctx()
 
         if self.is_stable:
@@ -210,22 +197,12 @@ class BFLoop(BFPPToken):
             pass
 
         if not is_stable and self.is_stable:
-            if ctx.lctx().inv_id != last_ctx.inv_id:
-                note = "This loop might contain some unstable element(s)"
-            else:
-                note = "This loop ends up at "
-                if ctx.lctx().current_ptr < 0:
-                    note += "+" + str(ctx.lctx().current_ptr)
-                else:
-                    note += str(ctx.lctx().current_ptr)
-
-            er = Error(
+            er = LoopNotStableError(
                 self.span,
-                msg="Loop marked as stable is not stable!",
-                note=note,
+                ctx,
             )
             er.show()
-            exit()
+            ctx.n_errors += 1
 
         ctx.pop_lctx()
 
@@ -308,11 +285,12 @@ class LocGoto(BFPPToken):
         else:
             er = Error(
                 self.span,
-                msg="Memory location " + self.location + " not found!",
+                msg="Memory location `" + self.location + "` not found!",
                 note="Defined locations: " + ", ".join(ctx.lctx().named_locations.keys())
             )
             er.show()
-            exit()
+            ctx.n_errors += 1
+            return ""
 
 
 class DeclareMacro(BFPPToken):
@@ -334,10 +312,10 @@ class DeclareMacro(BFPPToken):
         if self.name in ctx.macros.keys():
             er = Error(
                 self.span,
-                msg=str(self.name) + " is already defined as " + str(ctx.macros[self.name]),
+                msg="`" + str(self.name) + "` is already defined as " + str(ctx.macros[self.name]),
             )
             er.show()
-            exit()
+            ctx.n_errors += 1
 
         ctx.macros[self.name] = self
         return ""
@@ -361,10 +339,12 @@ class InvokeMacro(BFPPToken):
             # TODO: Search for macros with similar names?
             er = Error(
                 self.span,
-                msg="Macro " + self.name + " is not defined!",
+                msg="Macro `" + self.name + "` is not defined!",
             )
             er.show()
-            exit()
+            ctx.n_errors += 1
+
+            return ""
 
         fn = ctx.macros[self.name]
         if len(self.args) != len(fn.args.locations):
@@ -373,7 +353,7 @@ class InvokeMacro(BFPPToken):
                 msg="Expected {} variables, got {}".format(len(fn.args.locations), len(self.args)),
             )
             er.show()
-            exit()
+            ctx.n_errors += 1
 
         arg_locs = {}
         # Assign addresses for arguments
@@ -384,11 +364,13 @@ class InvokeMacro(BFPPToken):
             if var_name not in ctx.lctx().named_locations:
                 er = Error(
                     self.span,
-                    msg="Memory location " + var_name + " not found!",
+                    msg="Memory location `" + var_name + "` not found!",
                     note="Defined locations: " + ", ".join(ctx.lctx().named_locations.keys())
                 )
                 er.show()
-                exit()
+                ctx.n_errors += 1
+
+                return ""
 
             arg_locs[arg_name] = ctx.lctx().named_locations[var_name] - ctx.lctx().current_ptr
 
