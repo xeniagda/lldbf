@@ -22,9 +22,9 @@ def error(error):
     return COL_ERROR + error + COL_RESET
 
 def file_location(filename, start_line, end_line):
-    text = "in file " + filename
+    text = "in " + filename
     if start_line == end_line:
-        text += " at line " + str(start_line)
+        text += ":" + str(start_line)
     else:
-        text += " at lines " + str(start_line) + ".." + str(end_line)
+        text += ":" + str(start_line) + ".." + str(end_line)
     return COL_INFO + text + COL_RESET
