@@ -16,8 +16,8 @@ class LocalContext:
 
         self.named_locations = named_locations
 
-    def is_stable(self):
-        return self.current_ptr == 0
+    def is_stable_relative_to(self, other):
+        return self.current_ptr == 0 and self.inv_id == other.inv_id
 
     def copy(self):
         res = LocalContext(self.named_locations.copy(), self.inv_id)
@@ -171,33 +171,71 @@ class TokenList(BFPPToken):
 
 
 class BFLoop(BFPPToken):
-    def __init__(self, span, inner):
+    def __init__(self, span, is_stable, inner):
         super().__init__(span)
         self.inner = inner
+        self.is_stable = is_stable
 
     def into_bf(self, ctx):
-        new_lctx = ctx.new_lctx()
+        # new_lctx = ctx.new_lctx()
+        # ctx.lctx_stack.append(new_lctx)
+
+        # loop_content = self.inner.into_bf(ctx)
+        # if not ctx.lctx().is_stable():
+        #     ctx.pop_lctx()
+
+        #     # Loop is not stable, remake without any named locations
+        #     new_lctx = LocalContext({}, ctx.lctx().inv_id + 1)
+        #     ctx.lctx_stack.append(new_lctx)
+
+        #     loop_content = self.inner.into_bf(ctx)
+        #     # Hopefully the inner does not mess with the last lctx
+
+        # ctx.pop_lctx()
+        # return "[" + loop_content + "]"
+
+        last_ctx = ctx.lctx()
+
+        if self.is_stable:
+            new_lctx = ctx.new_lctx()
+        else:
+            new_lctx = LocalContext({}, ctx.lctx().inv_id + 1)
         ctx.lctx_stack.append(new_lctx)
 
         loop_content = self.inner.into_bf(ctx)
-        if not ctx.lctx().is_stable():
-            ctx.pop_lctx()
 
-            # Loop is not stable, remake without any named locations
-            new_lctx = LocalContext({}, ctx.lctx().inv_id + 1)
-            ctx.lctx_stack.append(new_lctx)
+        is_stable = ctx.lctx().is_stable_relative_to(last_ctx)
+        if is_stable and not self.is_stable:
+            # TODO: Give warning
+            pass
 
-            loop_content = self.inner.into_bf(ctx)
-            # Hopefully the inner does not mess with the last lctx
+        if not is_stable and self.is_stable:
+            if ctx.lctx().inv_id != last_ctx.inv_id:
+                note = "This loop might contain some unstable element(s)"
+            else:
+                note = "This loop ends up at "
+                if ctx.lctx().current_ptr < 0:
+                    note += "+" + str(ctx.lctx().current_ptr)
+                else:
+                    note += str(ctx.lctx().current_ptr)
+
+            er = Error(
+                self.span,
+                msg="Loop marked as stable is not stable!",
+                note=note,
+            )
+            er.show()
+            exit()
 
         ctx.pop_lctx()
+
         return "[" + loop_content + "]"
 
     def __str__(self):
         return "[" + str(self.inner) + "]"
 
     def __repr__(self):
-        return "Loop(" + repr(self.inner) + ")"
+        return "Loop(stable=" + str(self.is_stable) + "inner=" + repr(self.inner) + ")"
 
 
 class Repetition(BFPPToken):
@@ -403,6 +441,7 @@ for i in range(256):
             inc_by(x),
             BFLoop(
                 None,
+                True,
                 TokenList(PREGEN_SPAN, [
                     LocGoto(PREGEN_SPAN, "res"),
                     inc_by(y),

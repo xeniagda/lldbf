@@ -33,9 +33,11 @@ repetition: cont_group INT
            | "(" bfpp ")"
 
 ?bf_stmt: bf_basic_token
-        | bf_loop
+        | stable_loop
+        | unstable_loop
 
-bf_loop: "[" bfpp "]"
+stable_loop: "[" bfpp "]"
+unstable_loop: "unstable" "[" bfpp "]"
 
 !bf_basic_token: "+"
                | "-"
@@ -85,8 +87,12 @@ class ParseTransformer(Transformer):
         return BFToken(self.meta2span(meta), args[0])
 
     @v_args(meta=True)
-    def bf_loop(self, args, meta):
-        return BFLoop(self.meta2span(meta), args[0])
+    def stable_loop(self, args, meta):
+        return BFLoop(self.meta2span(meta), True, args[0])
+
+    @v_args(meta=True)
+    def unstable_loop(self, args, meta):
+        return BFLoop(self.meta2span(meta), False, args[0])
 
     def locname(self, args):
         return args[0].value
