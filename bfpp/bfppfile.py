@@ -17,13 +17,13 @@ class BFPPFile:
     def line_offset_for_pos(self, pos):
         # Binary search over line_idxs
         start = -1 # Inclusive
-        end = len(self.line_idxs) + 2 # Not inclusive
+        end = len(self.line_idxs) + 1 # Not inclusive
 
         while start != end - 1:
             mid = start + (end - start) // 2
 
             if mid < 0 or mid >= len(self.line_idxs):
-                return mid
+                return (mid, 0)
             if self.line_idxs[mid] <= pos:
                 start = mid
             else:
@@ -99,7 +99,7 @@ class Span:
         )
 
     def __repr__(self):
-        return "Span(bile={},start={},end={})".fromat(
+        return "Span(bile={},start={},end={})".format(
             self.bfile,
             self.start,
             self.end,
