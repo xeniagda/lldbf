@@ -13,6 +13,24 @@ class BFPPToken(ABC):
         pass
 
 
+class Debug(BFPPToken):
+    def __init__(self, span):
+        super(Debug, self).__init__(span)
+
+    def into_bf(self, ctx):
+        print("Debug at")
+        print("\n".join(self.span.show_ascii_art()))
+        print("Info:")
+        print("    ctx =", ctx)
+
+        return ""
+
+    def __str__(self):
+        return "debug"
+
+    def __repr__(self):
+        return "Debug()"
+
 class BFToken(BFPPToken):
     def __init__(self, span, token):
         super().__init__(span)
@@ -25,6 +43,11 @@ class BFToken(BFPPToken):
             ctx.lctx().current_ptr += 1
         elif self.token == "<":
             ctx.lctx().current_ptr -= 1
+
+        if self.token == "+":
+            ctx.delta_cur(1)
+        if self.token == "-":
+            ctx.delta_cur(-1)
 
         return self.token
 
@@ -253,7 +276,8 @@ class InvokeMacro(BFPPToken):
 
             arg_locs[arg_name] = ctx.lctx().named_locations[var_name] - ctx.lctx().current_ptr
 
-        new_lctx = LocalContext(arg_locs, ctx.lctx().inv_id)
+        new_lctx = ctx.new_lctx()
+        new_lctx.named_locations = arg_locs
         ctx.lctx_stack.append(new_lctx)
 
         # Go to the active arg in the function
@@ -268,22 +292,3 @@ class InvokeMacro(BFPPToken):
 
         return code
 
-PREGEN_SPAN = Span(BFPPFile("PREGENERATED", ""), 0, 0)
-
-def inc_by(n):
-    n = n % 256
-    if n == 0:
-        return TokenList(PREGEN_SPAN, [])
-    if n < 128:
-        return Repetition(None, BFToken(PREGEN_SPAN, "+"), n)
-    else:
-        return Repetition(None, BFToken(PREGEN_SPAN, "-"), 256 - n)
-
-
-if __name__ == "__main__":
-    ctx = Context()
-    dec = LocDec(PREGEN_SPAN, ["a", "b", "c"], 1)
-    goto = LocGoto(PREGEN_SPAN, "c")
-
-    code = TokenList(PREGEN_SPAN, [dec, goto]).into_bf(ctx)
-    print(code, ctx)

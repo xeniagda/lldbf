@@ -73,10 +73,11 @@ class LoopNotStableError(BaseError):
             ]
 
             note = "loop ends up at "
-            if self.ctx.lctx().current_ptr > 0:
-                note += "+" + str(self.ctx.lctx().current_ptr)
+            diff = self.ctx.lctx().current_ptr
+            if diff > 0:
+                note += "+" + str(diff)
             else:
-                note += str(self.ctx.lctx().current_ptr)
+                note += str(diff)
 
             if len(starts_at) > 0 and len(ends_up_at) > 0:
                 note_extra = "that is at " + f.var(ends_up_at[0]) + " instead of " + f.var(starts_at[0])

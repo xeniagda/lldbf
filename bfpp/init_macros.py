@@ -3,6 +3,17 @@ from tokens import *
 
 INIT_MACROS = {}
 
+PREGEN_SPAN = Span(BFPPFile("PREGENERATED", ""), 0, 0)
+
+def inc_by(n):
+    n = n % 256
+    if n == 0:
+        return TokenList(PREGEN_SPAN, [])
+    if n < 128:
+        return Repetition(None, BFToken(PREGEN_SPAN, "+"), n)
+    else:
+        return Repetition(None, BFToken(PREGEN_SPAN, "-"), 256 - n)
+
 # Generate setN
 for i in range(256):
     (x, y, z, k) = precomp_xyzk_list[i]

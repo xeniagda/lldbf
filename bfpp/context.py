@@ -1,3 +1,4 @@
+from collections import defaultdict
 MULTILINE_CTX = True
 SHOW_CTX_STACK = True
 SHOW_MACROS = False
@@ -7,9 +8,18 @@ class LocalContext:
     def __init__(self, named_locations, inv_id):
         self.inv_id = inv_id
         self.current_ptr = 0
-        self.modified_cells = []
+        self.cells_delta = {} # idx: value / None if unknown
 
         self.named_locations = named_locations
+
+    def delta_cur(self, delta):
+        if self.current_ptr in self.cells_delta:
+            if self.cells_delta[self.current_ptr] is not None:
+                self.cells_delta[self.current_ptr] += delta
+                if self.cells_delta[self.current_ptr] == 0:
+                    del self.cells_delta[self.current_ptr]
+        else:
+            self.cells_delta[self.current_ptr] = delta
 
     def is_stable_relative_to(self, other):
         return self.current_ptr == 0 and self.inv_id == other.inv_id
@@ -23,7 +33,7 @@ class LocalContext:
     def __str__(self):
         return "LocalContext(ptr={},mod={},locs={},inv_id={})".format(
             self.current_ptr,
-            self.modified_cells,
+            self.cells_delta,
             self.named_locations,
             self.inv_id,
         )
@@ -31,7 +41,7 @@ class LocalContext:
     def __repr__(self):
         return "LocalContext(ptr={},mod={},locs={},inv_id={})".format(
             self.current_ptr,
-            self.modified_cells,
+            self.cells_delta,
             self.named_locations,
             self.inv_id,
         )
@@ -42,7 +52,7 @@ class Context:
 
         self.macros = {}
 
-        self.known_values = {}
+        self.known_values = defaultdict(lambda: 0)
 
         self.n_errors = 0
 
@@ -119,3 +129,5 @@ Context(
 
         self.lctx().current_ptr += diff
 
+    def delta_cur(self, delta):
+        self.lctx().delta_cur(delta)

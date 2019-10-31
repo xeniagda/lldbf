@@ -13,6 +13,7 @@ bfpp: bfpp_block+
            | dec_macro
            | inv_macro
            | directive
+           | debug
 
 locname: /[\w\d_]+/
 
@@ -51,6 +52,8 @@ unstable_loop: "unstable" "[" bfpp "]"
 include: "#" "include" path
 
 ?path: /[\w.]+/
+
+debug: "debug"
 
 COMMENT: "/*" /(.|\n)*?/ "*/"
        | "//" /.*/
@@ -129,6 +132,10 @@ class ParseTransformer(Transformer):
         args_for_function = args[1:]
 
         return InvokeMacro(self.meta2span(meta), fn_name, args_for_function)
+
+    @v_args(meta=True)
+    def debug(self, args, meta):
+        return Debug(self.meta2span(meta))
 
     def include(self, args):
         path = args[0]
