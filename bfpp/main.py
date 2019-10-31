@@ -1,7 +1,8 @@
 from sys import argv
 from parse import parse
-from tokens import Context
+from context import Context
 from postproc import postproc
+from init_macros import INIT_MACROS
 
 if len(argv) == 2:
     # Read file
@@ -13,6 +14,7 @@ else:
 tokens = parse(argv[1], code)
 
 ctx = Context()
+ctx.macros = INIT_MACROS
 res = tokens.into_bf(ctx)
 
 if ctx.n_errors == 0:
