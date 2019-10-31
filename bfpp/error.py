@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import ascii_tools as f
 
 class Message(ABC):
     def __init__(self, span):
@@ -17,11 +18,12 @@ class Message(ABC):
         pass
 
     def show(self):
-        print(self.name() + ":", self.msg())
+        print()
+        print(f.error(self.name() + ": " + self.msg()))
         print("\n".join(self.span.show_ascii_art()))
 
         for note in self.notes():
-            print("  note:", note)
+            print(f.note("  note: " + note))
 
 class BaseError(Message):
     def __init__(self, span):
@@ -77,7 +79,7 @@ class LoopNotStableError(BaseError):
                 note += str(self.ctx.lctx().current_ptr)
 
             if len(starts_at) > 0 and len(ends_up_at) > 0:
-                note_extra = "that is at " + ends_up_at[0] + " instead of " + starts_at[0]
+                note_extra = "that is at " + f.var(ends_up_at[0]) + " instead of " + f.var(starts_at[0])
                 return [note, note_extra]
 
             return [note]
