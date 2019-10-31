@@ -1,3 +1,5 @@
+import ascii_tools as f
+
 def lpad(st, width):
     return " " * (width - len(st)) + st
 
@@ -70,21 +72,39 @@ class Span:
         number_width = len(str(end_line + 1))
         l_space = number_width + 5
 
-        indent = "    "
+        first_line = f.file_location(self.bfile.name, start_line + 1, end_line + 1)
 
-        first_line = "In file {}, lines {}..{}:".format(self.bfile.name, start_line + 1, end_line + 1)
-        second_line = indent + "," + "-" * (l_space - 1 + start_offset) + "V"
-        last_line = indent + "`" + "-" * (l_space - 1 + end_offset - 1) + "^"
+        if start_line != end_line:
+            second_line = "," + "-" * (l_space - 1 + start_offset) + "V"
+            second_line = f.marker(second_line)
+
+            first_lines = [first_line, second_line]
+
+            last_line = "`" + "-" * (l_space - 1 + end_offset - 1) + "^"
+            last_line = f.marker(last_line)
+        else:
+            first_lines = [first_line]
+
+            last_line = " " * l_space + " " * start_offset + "^" + "-" * (end_offset - start_offset - 2) + "^"
+            last_line = f.marker(last_line)
 
         inbetween = []
         for line in range(start_line, end_line + 1):
             line_st = lpad(str(line + 1), number_width)
-            inbetween.append(indent + "| {} | {}".format(line_st, self.bfile.lines[line]))
+            mpart = "| {} | ".format(line_st)
+            mpart = f.marker(mpart)
+            inbetween.append(mpart + self.bfile.lines[line])
 
         if len(inbetween) > 5:
-            inbetween = inbetween[:2] + [indent + "| ..."] + inbetween[-2:]
+            mpart = "| " + "." * (number_width + 1) + "| "
+            mpart = f.marker(mpart)
+            inbetween = inbetween[:2] + [mpart + "..."] + inbetween[-2:]
 
-        return [first_line, second_line] + inbetween + [last_line]
+        res = first_lines + inbetween + [last_line]
+
+        indent = "    "
+
+        return [indent + x for x in res]
 
     def __str__(self):
         start_line, start_offset = self.bfile.line_offset_for_pos(self.start)
