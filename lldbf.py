@@ -218,9 +218,9 @@ from init_macros import INIT_MACROS
 
 def read_units(args):
     if len(args) == 2 and args[0] == "-c":
-        code = preproc_file(args[1])
+        code = open(args[1]).read()
 
-        tokens = parse(argv[1], code)
+        tokens = parse(args[1], code)
         ctx = Context()
         ctx.macros = INIT_MACROS
         res = tokens.into_bf(ctx)
@@ -228,6 +228,7 @@ def read_units(args):
             exit()
 
         code_str = postproc(res)
+        print(code_str)
     elif len(args) == 1:
         code_str = open(args[0]).read()
     else:
@@ -314,7 +315,7 @@ if __name__ == "__main__":
                                 print("\033[38;5;5m" + pad_start(hex(ch)[2:], 2, "0") + "\033[0m", end="")
                         print()
                     elif cmd[1] == "w":
-                         set_input = ast.literal_eval(cmd[2:])
+                         set_input = ast.literal_eval(cmd[2:].strip())
                          if type(set_input) == str:
                             input_feed = list(map(ord, set_input))
                          if type(set_input) == list:
