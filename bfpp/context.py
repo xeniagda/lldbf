@@ -5,9 +5,10 @@ SHOW_MACROS = False
 SHOW_KNOWN = True
 
 class LocalContext:
-    def __init__(self, named_locations, inv_id):
+    def __init__(self, origin, named_locations, inv_id):
         self.inv_id = inv_id
-        self.current_ptr = 0
+        self.origin = origin
+        self.current_ptr = origin
         self.cells_delta = {} # idx: value / None if unknown
 
         self.named_locations = named_locations
@@ -22,33 +23,29 @@ class LocalContext:
             self.cells_delta[self.current_ptr] = delta
 
     def is_stable_relative_to(self, other):
-        return self.current_ptr == 0 and self.inv_id == other.inv_id
+        return self.current_ptr == self.origin and self.inv_id == other.inv_id
 
     def copy(self):
-        res = LocalContext(self.named_locations.copy(), self.inv_id)
+        res = LocalContext(self.origin, self.named_locations.copy(), self.inv_id)
+        res.current_ptr = self.current_ptr
         res.modified_cells = self.modified_cells
 
         return res
 
     def __str__(self):
-        return "LocalContext(ptr={},mod={},locs={},inv_id={})".format(
+        return "LocalContext(o={},ptr={},mod={},locs={},inv_id={})".format(
+            self.origin,
             self.current_ptr,
             self.cells_delta,
             self.named_locations,
             self.inv_id,
         )
 
-    def __repr__(self):
-        return "LocalContext(ptr={},mod={},locs={},inv_id={})".format(
-            self.current_ptr,
-            self.cells_delta,
-            self.named_locations,
-            self.inv_id,
-        )
+    __repr__ = __str__
 
 class Context:
     def __init__(self):
-        self.lctx_stack = [LocalContext({}, 0)]
+        self.lctx_stack = [LocalContext(0, {}, 0)]
 
         self.macros = {}
 
@@ -103,12 +100,11 @@ Context(
         return self.lctx_stack[-1]
 
     def new_lctx(self):
-        offset = self.lctx().current_ptr
-        offset_vals = {
-            name: index - offset
-            for (name, index) in self.lctx().named_locations.items()
-        }
-        return LocalContext(offset_vals, self.lctx().inv_id)
+        return LocalContext(
+            self.lctx().current_ptr,
+            self.lctx().named_locations.copy(),
+            self.lctx().inv_id
+        )
 
     def copy(self):
         res = Context()
@@ -119,15 +115,16 @@ Context(
         return res
 
     def pop_lctx(self):
-        diff = self.lctx().current_ptr
+        at = self.lctx().current_ptr
         inv_id = self.lctx().inv_id
 
         self.lctx_stack.pop()
 
         if inv_id != self.lctx().inv_id:
             self.lctx().named_locations = {}
+            self.lctx().inv_id = inv_id
 
-        self.lctx().current_ptr += diff
+        self.lctx().current_ptr = at
 
     def delta_cur(self, delta):
         self.lctx().delta_cur(delta)

@@ -63,7 +63,7 @@ class LoopNotStableError(BaseError):
             starts_at = [
                 name
                 for name, pos in self.ctx.lctx().named_locations.items()
-                if pos == 0
+                if pos == self.ctx.lctx().origin
             ]
 
             ends_up_at = [
@@ -73,7 +73,7 @@ class LoopNotStableError(BaseError):
             ]
 
             note = "loop ends up at "
-            diff = self.ctx.lctx().current_ptr
+            diff = self.ctx.lctx().current_ptr - self.ctx.lctx().origin
             if diff > 0:
                 note += "+" + str(diff)
             else:

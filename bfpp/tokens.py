@@ -88,7 +88,7 @@ class BFLoop(BFPPToken):
         if self.is_stable:
             new_lctx = ctx.new_lctx()
         else:
-            new_lctx = LocalContext({}, ctx.lctx().inv_id + 1)
+            new_lctx = LocalContext(0, {}, ctx.lctx().inv_id + 1)
         ctx.lctx_stack.append(new_lctx)
 
         loop_content = self.inner.into_bf(ctx)
@@ -274,7 +274,7 @@ class InvokeMacro(BFPPToken):
 
                 return ""
 
-            arg_locs[arg_name] = ctx.lctx().named_locations[var_name] - ctx.lctx().current_ptr
+            arg_locs[arg_name] = ctx.lctx().named_locations[var_name]
 
         new_lctx = ctx.new_lctx()
         new_lctx.named_locations = arg_locs
