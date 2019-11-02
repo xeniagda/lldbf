@@ -28,6 +28,7 @@ class LocalContext:
         res = LocalContext(self.origin, self.named_locations.copy(), self.inv_id)
         res.current_ptr = self.current_ptr
         res.modified_cells = self.modified_cells
+        res.in_macro = self.in_macro
 
         return res
 
