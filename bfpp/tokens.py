@@ -50,6 +50,9 @@ class BFToken(BFPPToken):
         if self.token == "-":
             ctx.apply_action(Delta(-1))
 
+        if self.token == ",":
+            ctx.apply_action(Unknown())
+
         return self.token
 
     def __str__(self):
@@ -84,6 +87,8 @@ class BFLoop(BFPPToken):
         self.is_stable = is_stable
 
     def into_bf(self, ctx):
+        is_effective = ctx.known_values[ctx.lctx().current_ptr] != 0
+
         last_ctx = ctx.lctx()
 
         if self.is_stable:
@@ -111,7 +116,15 @@ class BFLoop(BFPPToken):
 
         ctx.apply_action(Clear())
 
-        return "[" + loop_content + "]"
+        if is_effective:
+            return "[" + loop_content + "]"
+        else:
+            er = Error(
+                self.span,
+                msg="Loop not effective"
+            )
+            er.show()
+            return ""
 
     def __str__(self):
         return "[" + str(self.inner) + "]"
