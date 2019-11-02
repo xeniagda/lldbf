@@ -1,6 +1,9 @@
 from collections import defaultdict
+
+from cell_action import *
+
 MULTILINE_CTX = True
-SHOW_CTX_STACK = True
+SHOW_CTX_STACK = False
 SHOW_MACROS = False
 SHOW_KNOWN = True
 
@@ -9,18 +12,12 @@ class LocalContext:
         self.inv_id = inv_id
         self.origin = origin
         self.current_ptr = origin
-        self.cells_delta = {} # idx: value / None if unknown
+        self.cell_actions = defaultdict(lambda: Delta(0)) # idx: CellAction
 
         self.named_locations = named_locations
 
-    def delta_cur(self, delta):
-        if self.current_ptr in self.cells_delta:
-            if self.cells_delta[self.current_ptr] is not None:
-                self.cells_delta[self.current_ptr] += delta
-                if self.cells_delta[self.current_ptr] == 0:
-                    del self.cells_delta[self.current_ptr]
-        else:
-            self.cells_delta[self.current_ptr] = delta
+    def apply_action(self, action):
+        self.cell_actions[self.current_ptr] = action.perform_after(self.cell_actions[self.current_ptr])
 
     def is_stable_relative_to(self, other):
         return self.current_ptr == self.origin and self.inv_id == other.inv_id
@@ -33,10 +30,10 @@ class LocalContext:
         return res
 
     def __str__(self):
-        return "LocalContext(o={},ptr={},mod={},locs={},inv_id={})".format(
+        return "LocalContext(o={},ptr={},actions={},locs={},inv_id={})".format(
             self.origin,
             self.current_ptr,
-            self.cells_delta,
+            dict(self.cell_actions),
             self.named_locations,
             self.inv_id,
         )
@@ -81,7 +78,7 @@ Context(
 
         if SHOW_KNOWN:
             knw_fmt = "known"
-            knw_val = str(self.known_values)
+            knw_val = str(dict(self.known_values))
         else:
             knw_fmt = "#known"
             knw_val = len(self.known_values)
@@ -114,9 +111,12 @@ Context(
 
         return res
 
-    def pop_lctx(self):
+    def pop_lctx(self, repeated):
         at = self.lctx().current_ptr
         inv_id = self.lctx().inv_id
+        stable = self.lctx().is_stable_relative_to(self.lctx_stack[-2])
+
+        cell_actions = self.lctx().cell_actions
 
         self.lctx_stack.pop()
 
@@ -124,7 +124,19 @@ Context(
             self.lctx().named_locations = {}
             self.lctx().inv_id = inv_id
 
+        for loc, act in cell_actions.items():
+            if repeated:
+                act = act.repeated()
+                self.known_values[loc] = act.apply_to_value(self.known_values[loc])
+
+            self.lctx().cell_actions[loc] = act.perform_after(self.lctx().cell_actions[loc])
+
+        if repeated and not stable:
+            self.lctx().cell_actions.clear()
+            self.known_values = defaultdict(lambda: None)
+
         self.lctx().current_ptr = at
 
-    def delta_cur(self, delta):
-        self.lctx().delta_cur(delta)
+    def apply_action(self, action):
+        self.known_values[self.lctx().current_ptr] = action.apply_to_value(self.known_values[self.lctx().current_ptr])
+        self.lctx().apply_action(action)

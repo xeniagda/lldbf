@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from bfppfile import Span, BFPPFile
 from error import *
 from context import Context, LocalContext
+from cell_action import *
 
 class BFPPToken(ABC):
     @abstractmethod
@@ -45,9 +46,9 @@ class BFToken(BFPPToken):
             ctx.lctx().current_ptr -= 1
 
         if self.token == "+":
-            ctx.delta_cur(1)
+            ctx.apply_action(Delta(1))
         if self.token == "-":
-            ctx.delta_cur(-1)
+            ctx.apply_action(Delta(-1))
 
         return self.token
 
@@ -106,7 +107,9 @@ class BFLoop(BFPPToken):
             er.show()
             ctx.n_errors += 1
 
-        ctx.pop_lctx()
+        ctx.pop_lctx(repeated=True)
+
+        ctx.apply_action(Clear())
 
         return "[" + loop_content + "]"
 
@@ -288,7 +291,7 @@ class InvokeMacro(BFPPToken):
         code += fn.content.into_bf(ctx)
 
         # Pop the function ctx
-        ctx.pop_lctx()
+        ctx.pop_lctx(repeated=False)
 
         return code
 
