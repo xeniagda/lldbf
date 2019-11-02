@@ -119,6 +119,9 @@ class BFLoop(BFPPToken):
         if is_effective:
             return "[" + loop_content + "]"
         else:
+            if not ctx.lctx().in_macro:
+                warn = IneffectiveLoopWarning(self.span)
+                warn.show()
             return ""
 
     def __str__(self):
@@ -288,6 +291,7 @@ class InvokeMacro(BFPPToken):
             arg_locs[arg_name] = ctx.lctx().named_locations[var_name]
 
         new_lctx = ctx.new_lctx()
+        new_lctx.in_macro = True
         new_lctx.named_locations = arg_locs
         ctx.lctx_stack.append(new_lctx)
 

@@ -16,6 +16,8 @@ class LocalContext:
 
         self.named_locations = named_locations
 
+        self.in_macro = False
+
     def apply_action(self, action):
         self.cell_actions[self.current_ptr] = action.perform_after(self.cell_actions[self.current_ptr])
 
@@ -97,11 +99,13 @@ Context(
         return self.lctx_stack[-1]
 
     def new_lctx(self):
-        return LocalContext(
+        res = LocalContext(
             self.lctx().current_ptr,
             self.lctx().named_locations.copy(),
             self.lctx().inv_id
         )
+        res.in_macro = self.lctx().in_macro
+        return res
 
     def copy(self):
         res = Context()

@@ -63,6 +63,17 @@ class Error(BaseError):
             return []
         return [self.note]
 
+class IneffectiveLoopWarning(Warn):
+    def __init__(self, span):
+        self.span = span
+
+    def msg(self):
+        return "Loop is never executed (cell is garuanteed to be zero)"
+
+    def notes(self):
+        # TODO: Maybe show where the Clear came from
+        return []
+
 class LoopNotStableError(BaseError):
     def __init__(self, span, ctx):
         super(LoopNotStableError, self).__init__(span)
