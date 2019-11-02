@@ -236,6 +236,7 @@ class DeclareMacro(BFPPToken):
 
         # Dry-run macro to check for errors/warnings
         dry_ctx = Context()
+        dry_ctx.macros = ctx.macros
         dry_ctx.known_values = defaultdict(lambda: None)
 
         # Fill in args
