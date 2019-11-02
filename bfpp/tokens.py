@@ -209,6 +209,24 @@ class LocGoto(BFPPToken):
             ctx.n_errors += 1
             return ""
 
+class AssumeStable(BFPPToken):
+    def __init__(self, span, content):
+        super().__init__(span)
+        self.content = content
+
+    def __str__(self):
+        return "assume stable {" + str( self.content) + "}"
+
+    def __repr__(self):
+        return "AssumeStable(content=" + repr(self.content) + ")"
+
+    def into_bf(self, ctx):
+        curr_lctx = ctx.lctx().copy()
+
+        res = self.content.into_bf(ctx)
+        ctx.lctx_stack[-1] = curr_lctx
+
+        return res
 
 class DeclareMacro(BFPPToken):
     def __init__(self, span, name, args, content):

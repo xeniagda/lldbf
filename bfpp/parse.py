@@ -11,6 +11,7 @@ bfpp: bfpp_block+
            | loc_dec
            | loc_goto
            | dec_macro
+           | assume_stable
            | inv_macro
            | directive
            | debug
@@ -27,6 +28,8 @@ loc_goto: "(!" locname ")"
 dec_macro: "def" locname loc_dec "{" bfpp "}"
 
 inv_macro: "inv" locname "(" locname* ")"
+
+assume_stable: "assume" "stable" "{" bfpp* "}"
 
 repetition: cont_group INT
 
@@ -136,6 +139,10 @@ class ParseTransformer(Transformer):
     @v_args(meta=True)
     def debug(self, args, meta):
         return Debug(self.meta2span(meta))
+
+    @v_args(meta=True)
+    def assume_stable(self, args, meta):
+        return AssumeStable(self.meta2span(meta), args[0])
 
     def include(self, args):
         path = args[0]
