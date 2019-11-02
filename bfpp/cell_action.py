@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 
 class CellAction:
-    def __init__(self):
-        pass
+    def __init__(self, span):
+        self.span = span
 
     @abstractmethod
     def perform_after(self, before):
@@ -17,8 +17,8 @@ class CellAction:
         pass
 
 class Unknown(CellAction):
-    def __init__(self):
-        super(Unknown, self).__init__()
+    def __init__(self, span):
+        super(Unknown, self).__init__(span)
 
     def perform_after(self, before):
         return self
@@ -35,14 +35,14 @@ class Unknown(CellAction):
     __repr__ = __str__
 
 class Clear(CellAction):
-    def __init__(self):
-        super(Clear, self).__init__()
+    def __init__(self, span):
+        super(Clear, self).__init__(span)
 
     def perform_after(self, before):
         return self
 
     def repeated(self):
-        return Unknown()
+        return Unknown(None)
 
     def apply_to_value(self, value):
         return 0
@@ -53,21 +53,21 @@ class Clear(CellAction):
     __repr__ = __str__
 
 class Delta(CellAction):
-    def __init__(self, amount):
-        super(Delta, self).__init__()
+    def __init__(self, span, amount):
+        super(Delta, self).__init__(span)
         self.amount = amount % 256
 
     def perform_after(self, action):
         if isinstance(action, Delta):
-            return Delta(self.amount + action.amount)
+            return Delta(None, self.amount + action.amount)
 
         if isinstance(action, Clear):
-            return Delta(self.amount)
+            return Delta(None, self.amount)
 
-        return Unknown()
+        return Unknown(None)
 
     def repeated(self):
-        return Unknown()
+        return Unknown(None)
 
     def apply_to_value(self, value):
         if self.amount == 0:
@@ -82,7 +82,7 @@ class Delta(CellAction):
     __repr__ = __str__
 
 if __name__ == "__main__":
-    a = Clear()
-    b = Delta(5)
+    a = Clear(None)
+    b = Delta(None, 5)
     comb = b.perform_after(a)
     print(comb.apply_to_value(5))

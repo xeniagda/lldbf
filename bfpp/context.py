@@ -14,7 +14,7 @@ class LocalContext:
         self.inv_id = inv_id
         self.origin = origin
         self.current_ptr = origin
-        self.cell_actions = defaultdict(lambda: Delta(0)) # idx: CellAction
+        self.cell_actions = defaultdict(lambda: Delta(None, 0)) # idx: CellAction
 
         self.named_locations = named_locations
 
@@ -60,8 +60,7 @@ class KnownValue:
         else:
             return "KV({})".format(self.value)
 
-    def __repr__(self):
-        return "KnownValue(value={}, action_history={})".format(self.value, self.action_history)
+    __repr__ = __str__
 
 
 class Context:

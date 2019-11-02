@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 import ascii_tools as f
+from cell_action import Clear
+from bfppfile import Span
 
 class Message(ABC):
     def __init__(self, span):
@@ -27,7 +29,10 @@ class Message(ABC):
         print("\n".join(self.span.show_ascii_art()))
 
         for note in self.notes():
-            print(f.note("  note: " + note))
+            if isinstance(note, str):
+                print(f.note("  note: " + note))
+            if isinstance(note, Span):
+                print("\n".join(note.show_ascii_art()))
 
 class BaseError(Message):
     def __init__(self, span):
@@ -64,15 +69,25 @@ class Error(BaseError):
         return [self.note]
 
 class IneffectiveLoopWarning(Warn):
-    def __init__(self, span):
+    def __init__(self, span, ctx):
         self.span = span
+        self.ctx = ctx
 
     def msg(self):
         return "Loop is never executed (cell is garuanteed to be zero)"
 
     def notes(self):
         # TODO: Maybe show where the Clear came from
-        return []
+        value = self.ctx.known_values[self.ctx.lctx().current_ptr]
+
+        clears = [x for x in value.action_history if isinstance(x, Clear) and x.span is not None]
+
+        if len(clears) == 0:
+            return ["This cell's value has not changed since the beginning of the program"]
+        else:
+            last_clear = clears[-1]
+            span = last_clear.span
+            return ["This cell was last cleared from here:", span]
 
 class LoopNotStableError(BaseError):
     def __init__(self, span, ctx):

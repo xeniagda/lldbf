@@ -48,12 +48,12 @@ class BFToken(BFPPToken):
             ctx.lctx().current_ptr -= 1
 
         if self.token == "+":
-            ctx.apply_action(Delta(1))
+            ctx.apply_action(Delta(self.span, 1))
         if self.token == "-":
-            ctx.apply_action(Delta(-1))
+            ctx.apply_action(Delta(self.span, -1))
 
         if self.token == ",":
-            ctx.apply_action(Unknown())
+            ctx.apply_action(Unknown(self.span))
 
         return self.token
 
@@ -116,14 +116,16 @@ class BFLoop(BFPPToken):
 
         ctx.pop_lctx(repeated=True)
 
-        ctx.apply_action(Clear())
+        if not is_effective and not ctx.lctx().in_macro:
+            if not ctx.lctx().in_macro:
+                warn = IneffectiveLoopWarning(self.span, ctx)
+                warn.show()
+
+        ctx.apply_action(Clear(self.span))
 
         if is_effective:
             return "[" + loop_content + "]"
         else:
-            if not ctx.lctx().in_macro:
-                warn = IneffectiveLoopWarning(self.span)
-                warn.show()
             return ""
 
     def __str__(self):
