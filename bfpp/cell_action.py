@@ -42,7 +42,7 @@ class Clear(CellAction):
         return self
 
     def repeated(self):
-        return self
+        return Unknown()
 
     def apply_to_value(self, value):
         return 0
@@ -64,7 +64,7 @@ class Delta(CellAction):
         if isinstance(action, Clear):
             return Delta(self.amount)
 
-        return Unknown
+        return Unknown()
 
     def repeated(self):
         return Unknown()
