@@ -119,11 +119,6 @@ class BFLoop(BFPPToken):
         if is_effective:
             return "[" + loop_content + "]"
         else:
-            er = Error(
-                self.span,
-                msg="Loop not effective"
-            )
-            er.show()
             return ""
 
     def __str__(self):
