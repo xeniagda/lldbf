@@ -1,0 +1,13 @@
+(? >a)
+
+// Case 1: Zero from start
+(!a) [-]
+
+// Case 2: Zero from clear
+
++ unstable [ > ] [-]
+
+// Case 3: known inside macro
+def zero_check(? a >b c) {
+    (!a) [-] [-]
+}
