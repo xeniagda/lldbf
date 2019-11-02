@@ -27,7 +27,7 @@ class LocalContext:
     def copy(self):
         res = LocalContext(self.origin, self.named_locations.copy(), self.inv_id)
         res.current_ptr = self.current_ptr
-        res.modified_cells = self.modified_cells
+        res.cell_actions = self.cell_actions
         res.in_macro = self.in_macro
 
         return res
