@@ -224,7 +224,17 @@ class AssumeStable(BFPPToken):
         curr_lctx = ctx.lctx().copy()
 
         res = self.content.into_bf(ctx)
+
+        ptr_diff = curr_lctx.current_ptr - ctx.lctx().current_ptr
+
         ctx.lctx_stack[-1] = curr_lctx
+
+        # Shift known values
+        old_known = dict(ctx.known_values)
+        ctx.known_values.clear()
+
+        for idx, val in old_known.items():
+            ctx.known_values[idx + ptr_diff] = val
 
         return res
 
