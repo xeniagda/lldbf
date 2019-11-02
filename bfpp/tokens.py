@@ -1,3 +1,4 @@
+from collections import defaultdict
 from abc import ABC, abstractmethod
 from bfppfile import Span, BFPPFile
 from error import *
@@ -232,6 +233,16 @@ class DeclareMacro(BFPPToken):
             )
             er.show()
             ctx.n_errors += 1
+
+        # Dry-run macro to check for errors/warnings
+        dry_ctx = Context()
+        dry_ctx.known_values = defaultdict(lambda: None)
+
+        # Fill in args
+        for i, arg in enumerate(self.args.locations):
+            dry_ctx.lctx().named_locations[arg] = i - self.args.active_idx
+
+        _ = self.content.into_bf(dry_ctx)
 
         ctx.macros[self.name] = self
         return ""
