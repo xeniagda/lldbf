@@ -14,12 +14,16 @@ class Message(ABC):
         pass
 
     @abstractmethod
+    def msg_fmt(self, msg):
+        pass
+
+    @abstractmethod
     def notes(self):
         pass
 
     def show(self):
         print()
-        print(f.error(self.name() + ": " + self.msg()))
+        print(self.msg_fmt(self.name() + ": " + self.msg()))
         print("\n".join(self.span.show_ascii_art()))
 
         for note in self.notes():
@@ -31,6 +35,19 @@ class BaseError(Message):
 
     def name(self):
         return "Error"
+
+    def msg_fmt(self, msg):
+        return f.error(msg)
+
+class Warn(Message):
+    def __init__(self, span):
+        super(BaseError, self).__init__(span)
+
+    def name(self):
+        return "Warning"
+
+    def msg_fmt(self, msg):
+        return f.warning(msg)
 
 class Error(BaseError):
     def __init__(self, span, msg, note=None):
