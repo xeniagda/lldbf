@@ -1,8 +1,9 @@
+import copy
 from collections import defaultdict
 from abc import ABC, abstractmethod
 from bfppfile import Span, BFPPFile
 from error import *
-from context import Context, LocalContext
+from context import Context, LocalContext, KnownValue
 from cell_action import *
 
 class BFPPToken(ABC):
@@ -88,7 +89,7 @@ class BFLoop(BFPPToken):
         self.is_stable = is_stable
 
     def into_bf(self, ctx):
-        is_effective = ctx.known_values[ctx.lctx().current_ptr] != 0
+        is_effective = ctx.known_values[ctx.lctx().current_ptr].value != 0
 
         last_ctx = ctx.lctx()
 
@@ -230,7 +231,7 @@ class AssumeStable(BFPPToken):
         ctx.lctx_stack[-1] = curr_lctx
 
         # Shift known values
-        old_known = dict(ctx.known_values)
+        old_known = copy.deepcopy(ctx.known_values)
         ctx.known_values.clear()
 
         for idx, val in old_known.items():
@@ -265,7 +266,7 @@ class DeclareMacro(BFPPToken):
         # Dry-run macro to check for errors/warnings
         dry_ctx = Context()
         dry_ctx.macros = ctx.macros
-        dry_ctx.known_values = defaultdict(lambda: None)
+        dry_ctx.known_values = defaultdict(lambda: KnownValue(None))
 
         # Fill in args
         for i, arg in enumerate(self.args.locations):

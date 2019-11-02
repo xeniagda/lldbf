@@ -1,4 +1,5 @@
 from collections import defaultdict
+import copy
 
 from cell_action import *
 
@@ -6,6 +7,7 @@ MULTILINE_CTX = True
 SHOW_CTX_STACK = False
 SHOW_MACROS = False
 SHOW_KNOWN = True
+SHOW_KV_HIST = False
 
 class LocalContext:
     def __init__(self, origin, named_locations, inv_id):
@@ -43,13 +45,32 @@ class LocalContext:
 
     __repr__ = __str__
 
+class KnownValue:
+    def __init__(self, value):
+        self.value = value
+        self.action_history = []
+
+    def apply_action(self, action):
+        self.value = action.apply_to_value(self.value)
+        self.action_history.append(action)
+
+    def __str__(self):
+        if SHOW_KV_HIST:
+            return "KV(val={}, hist={})".format(self.value, self.action_history)
+        else:
+            return "KV({})".format(self.value)
+
+    def __repr__(self):
+        return "KnownValue(value={}, action_history={})".format(self.value, self.action_history)
+
+
 class Context:
     def __init__(self):
         self.lctx_stack = [LocalContext(0, {}, 0)]
 
         self.macros = {}
 
-        self.known_values = defaultdict(lambda: 0)
+        self.known_values = defaultdict(lambda: KnownValue(0))
 
         self.n_errors = 0
 
@@ -112,7 +133,7 @@ Context(
         res = Context()
         res.lctx_stack = [lctx.copy() for lctx in self.lctx_stack]
         res.macros = self.macros.copy()
-        res.known_values = self.known_values.copy()
+        res.known_values = copy.deepcopy(self.known_values)
 
         return res
 
@@ -132,16 +153,16 @@ Context(
         for loc, act in cell_actions.items():
             if repeated:
                 act = act.repeated()
-                self.known_values[loc] = act.apply_to_value(self.known_values[loc])
+                self.known_values[loc].apply_action(act)
 
             self.lctx().cell_actions[loc] = act.perform_after(self.lctx().cell_actions[loc])
 
         if repeated and not stable:
             self.lctx().cell_actions.clear()
-            self.known_values = defaultdict(lambda: None)
+            self.known_values = defaultdict(lambda: KnownValue(None))
 
         self.lctx().current_ptr = at
 
     def apply_action(self, action):
-        self.known_values[self.lctx().current_ptr] = action.apply_to_value(self.known_values[self.lctx().current_ptr])
+        self.known_values[self.lctx().current_ptr].apply_action(action)
         self.lctx().apply_action(action)
