@@ -35,7 +35,7 @@ class StateDelta:
         for idx, action in other.cell_actions.items():
             my_idx = idx - self.ptr_delta
             if idx in self.cell_actions:
-                resulting.cell_actions[idx] = action.perform_after(resulting.cell_actions[idx])
+                resulting.cell_actions[idx] = action.perform_after(self.cell_actions[idx])
             else:
                 resulting.cell_actions[idx] = action
 
