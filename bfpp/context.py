@@ -75,16 +75,19 @@ class State:
 
     def with_delta_applied(self, delta):
         result = State()
+        result.ptr = self.ptr + delta.ptr_delta
+        result.ptr_id = self.ptr_id
+        result.cell_values = self.cell_values.copy()
 
         if delta.ptr_id_delta != 0:
             result.cell_values = defaultdict(lambda x: None)
             result.ptr = 0
-            result.ptr_id = self.ptr_id + delta_ptr_id_delta
+            result.ptr_id = self.ptr_id + delta.ptr_id_delta
 
         for idx, action in delta.cell_actions.items():
-            value = None
-            if idx in self.cell_values:
-                value = self.cell_values[idx]
+            idx = idx + result.ptr
+            value = self.cell_values[idx]
+
             res_value = action.apply_to_value(value)
             result.cell_values[idx] = res_value
 
