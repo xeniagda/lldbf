@@ -30,14 +30,14 @@ class StateDelta:
         resulting.ptr_delta = self.ptr_delta + other.ptr_delta
         resulting.ptr_id_delta = self.ptr_id_delta
 
-        resulting.cell_actions = {idx - self.ptr_delta: action for idx, action in self.cell_actions.items()}
+        resulting.cell_actions = self.cell_actions.copy()
 
         for idx, action in other.cell_actions.items():
-            my_idx = idx - self.ptr_delta
-            if idx in self.cell_actions:
-                resulting.cell_actions[idx] = action.perform_after(self.cell_actions[idx])
+            my_idx = idx + self.ptr_delta
+            if my_idx in self.cell_actions:
+                resulting.cell_actions[my_idx] = action.perform_after(self.cell_actions[my_idx])
             else:
-                resulting.cell_actions[idx] = action
+                resulting.cell_actions[my_idx] = action
 
         return resulting
 
@@ -50,14 +50,13 @@ class StateDelta:
 
     def repeated(self):
         res = StateDelta()
-        res.ptr_delta = self.ptr_delta
-        res.ptr_id_delta = self.ptr_id_delta
-
-        if not self.is_stable():
-            res.ptr_id_delta += 1
+        if self.ptr_delta == 0 and self.ptr_id_delta == 0:
+            res.cell_actions = {idx: action.repeated() for idx, action in self.cell_actions.items()}
             return res
 
-        res.cell_actions = {idx: action.repeated() for idx, action in self.cell_actions.items()}
+        res.ptr_delta = 0
+        res.ptr_id_delta = self.ptr_id_delta + 1
+
         return res
 
     def __str__(self):
@@ -82,7 +81,7 @@ class State:
         result.cell_values = self.cell_values.copy()
 
         if delta.ptr_id_delta != 0:
-            result.cell_values = defaultdict(lambda x: None)
+            result.cell_values = defaultdict(lambda: None)
             result.ptr = 0
             result.ptr_id = self.ptr_id + delta.ptr_id_delta
             result.named_locations = {}
@@ -97,7 +96,7 @@ class State:
         return result
 
     def __str__(self):
-        return f'State(vals={dict(self.cell_values)}, ptr={self.ptr}, ptr_id={self.ptr_id}, locs={self.named_locations})'
+        return f'State(vals={dict(self.cell_values)}, default={self.cell_values[None]} ptr={self.ptr}, ptr_id={self.ptr_id}, locs={self.named_locations})'
 
 if __name__ == "__main__":
     # Ad-hoc tests
