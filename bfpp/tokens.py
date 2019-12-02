@@ -83,7 +83,8 @@ class TokenList(BFPPToken):
         res = ""
         for x in self.tokens:
             res += x.into_bf(ctx)
-            ctx = ctx.with_delta_applied(x.get_delta(ctx))
+            delta = x.get_delta(ctx)
+            ctx = ctx.with_delta_applied(delta)
 
         return res
 
@@ -280,19 +281,23 @@ class DeclareMacro(BFPPToken):
             ctx.n_errors += 1
 
         # Dry-run macro to check for errors/warnings
-        dry_ctx = Context()
+        dry_ctx = State()
         dry_ctx.macros = ctx.macros
-        dry_ctx.known_values = defaultdict(lambda: KnownValue(None))
+        # Make sure all values are unknown
+        dry_ctx.cell_values = defaultdict(lambda: None)
 
         # Fill in args
         for i, arg in enumerate(self.args.locations):
-            dry_ctx.lctx().named_locations[arg] = i - self.args.active_idx
+            dry_ctx.named_locations[arg] = i - self.args.active_idx
 
         _ = self.content.into_bf(dry_ctx)
+        _ = self.content.get_delta(dry_ctx)
 
         ctx.macros[self.name] = self
         return ""
 
+    def get_delta(self, ctx):
+        return StateDelta()
 
 class InvokeMacro(BFPPToken):
     def __init__(self, span, name, args):
