@@ -34,21 +34,24 @@ class Unknown(CellAction):
 
     __repr__ = __str__
 
-class Clear(CellAction):
-    def __init__(self, span):
-        super(Clear, self).__init__(span)
+class SetTo(CellAction):
+    def __init__(self, span, value):
+        super(SetTo, self).__init__(span)
+        self.value = value % 256
 
     def perform_after(self, before):
         return self
 
     def repeated(self):
-        return Unknown(None)
+        # The count might be zero, therefore we can not be sure
+        # (this caused a few bugs where I returned self, before I realized this)
+        return Unknown(self.span)
 
     def apply_to_value(self, value):
-        return 0
+        return self.value
 
     def __str__(self):
-        return "Clear"
+        return f'SetTo({self.value})'
 
     __repr__ = __str__
 
@@ -61,8 +64,8 @@ class Delta(CellAction):
         if isinstance(action, Delta):
             return Delta(None, self.amount + action.amount)
 
-        if isinstance(action, Clear):
-            return Delta(None, self.amount)
+        if isinstance(action, SetTo):
+            return SetTo(None, action.value + self.amount)
 
         return Unknown(None)
 
@@ -82,7 +85,7 @@ class Delta(CellAction):
     __repr__ = __str__
 
 if __name__ == "__main__":
-    a = Clear(None)
+    a = SetTo(None, 1)
     b = Delta(None, 5)
     comb = b.perform_after(a)
     print(comb.apply_to_value(5))

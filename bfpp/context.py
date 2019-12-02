@@ -3,165 +3,78 @@ import copy
 
 from cell_action import *
 
-MULTILINE_CTX = True
-SHOW_CTX_STACK = False
-SHOW_MACROS = False
-SHOW_KNOWN = True
-SHOW_KV_HIST = False
+VERBOSE = True
 
-class LocalContext:
-    def __init__(self, origin, named_locations, inv_id):
-        self.inv_id = inv_id
-        self.origin = origin
-        self.current_ptr = origin
-        self.cell_actions = defaultdict(lambda: Delta(None, 0)) # idx: CellAction
+# Difference between two states in the execution of a program.
+class StateDelta:
+    def __init__(self, ptr_delta=0):
+        self.cell_actions = {} # {idx: cell_action}
+        self.ptr_delta = ptr_delta
+        self.ptr_id_delta = 0 # Sometimes, the pointer location becomes unknown. The pointer id is what the pointer delta is relative to
 
-        self.named_locations = named_locations
+    def is_stable(self):
+        return self.ptr_delta == self.ptr_id_delta == 0
 
-        self.in_macro = False
+    def with_appended(self, other):
+        if other.ptr_id_delta != 0:
+            # If the next delta makes the pointer indeterminate, what we know now is useless
+            return other
 
-    def apply_action(self, action):
-        self.cell_actions[self.current_ptr] = action.perform_after(self.cell_actions[self.current_ptr])
+        resulting = StateDelta()
+        resulting.ptr_delta = self.ptr_delta + other.ptr_delta
+        resulting.ptr_id_delta = self.ptr_id_delta
 
-    def is_stable_relative_to(self, other):
-        return self.current_ptr == self.origin and self.inv_id == other.inv_id
+        resulting.cell_actions = {idx - self.ptr_delta: action for idx, action in self.cell_actions.items()}
 
-    def copy(self):
-        res = LocalContext(self.origin, self.named_locations.copy(), self.inv_id)
-        res.current_ptr = self.current_ptr
-        res.cell_actions = self.cell_actions
-        res.in_macro = self.in_macro
+        for idx, action in other.cell_actions.items():
+            my_idx = idx - self.ptr_delta
+            if idx in self.cell_actions:
+                resulting.cell_actions[idx] = action.perform_after(resulting.cell_actions[idx])
+            else:
+                resulting.cell_actions[idx] = action
 
-        return res
+        return resulting
 
     def __str__(self):
-        return "LocalContext(o={},ptr={},actions={},locs={},inv_id={})".format(
-            self.origin,
-            self.current_ptr,
-            dict(self.cell_actions),
-            self.named_locations,
-            self.inv_id,
-        )
+        return f'StateDelta(actions={self.cell_actions}, Δptr={self.ptr_delta}, Δp_id={self.ptr_id_delta})'
 
     __repr__ = __str__
 
-class KnownValue:
-    def __init__(self, value):
-        self.value = value
-        self.action_history = []
-
-    def apply_action(self, action):
-        self.value = action.apply_to_value(self.value)
-        self.action_history.append(action)
-
-    def __str__(self):
-        if SHOW_KV_HIST:
-            return "KV(val={}, hist={})".format(self.value, self.action_history)
-        else:
-            return "KV({})".format(self.value)
-
-    __repr__ = __str__
-
-
-class Context:
+class State:
     def __init__(self):
-        self.lctx_stack = [LocalContext(0, {}, 0)]
+        self.cell_values = defaultdict(int)
+        self.ptr = 0
+        self.ptr_id = 0
 
-        self.macros = {}
+    def with_delta_applied(self, delta):
+        result = State()
 
-        self.known_values = defaultdict(lambda: KnownValue(0))
+        if delta.ptr_id_delta != 0:
+            result.cell_values = {}
+            result.ptr = 0
+            result.ptr_id = self.ptr_id + delta_ptr_id_delta
 
-        self.n_errors = 0
+        for idx, action in delta.cell_actions.items():
+            value = None
+            if idx in self.cell_values:
+                value = self.cell_values[idx]
+            res_value = action.apply_to_value(value)
+            result.cell_values[idx] = res_value
 
-    def __str__(self):
-        if MULTILINE_CTX:
-            fmt = """\
-Context(
-    {ctx_fmt}={ctx_val},
-    {mac_fmt}={mac_val},
-    {knw_fmt}={knw_val},
-    n_errors={n_errors},
-)"""
-        else:
-            fmt = "Context({ctx_fmt}={ctx_val},{mac_fmt}={mac_val},{knw_fmt}={knw_fmt},n_errors={n_errors})"
+        return result
 
-        if SHOW_CTX_STACK:
-            ctx_fmt = "lctx_stack"
-            ctx_val = str(self.lctx_stack)
-        else:
-            ctx_fmt = "lctx"
-            ctx_val = str(self.lctx_stack[-1])
+if __name__ == "__main__":
+    # Ad-hoc tests
+    delta1 = StateDelta()
+    delta1.cell_actions[0] = Delta(None, 3)
+    delta1.cell_actions[1] = Unknown(None)
+    delta1.cell_actions[2] = Delta(None, 1)
+    delta1.ptr_delta = 2
 
-        if SHOW_MACROS:
-            mac_fmt = "macros"
-            mac_val = str(self.macros)
-        else:
-            mac_fmt = "#mactros"
-            mac_val = len(self.macros)
+    delta2 = StateDelta()
+    delta2.cell_actions[-1] = SetTo(None, 3)
+    delta2.cell_actions[0] = SetTo(None, 3)
 
-        if SHOW_KNOWN:
-            knw_fmt = "known"
-            knw_val = str(dict(self.known_values))
-        else:
-            knw_fmt = "#known"
-            knw_val = len(self.known_values)
-
-        return fmt.format(
-            ctx_fmt=ctx_fmt,
-            ctx_val=ctx_val,
-            mac_fmt=mac_fmt,
-            mac_val=mac_val,
-            knw_fmt=knw_fmt,
-            knw_val=knw_val,
-            n_errors=self.n_errors
-        )
-
-    def lctx(self):
-        return self.lctx_stack[-1]
-
-    def new_lctx(self):
-        res = LocalContext(
-            self.lctx().current_ptr,
-            self.lctx().named_locations.copy(),
-            self.lctx().inv_id
-        )
-        res.in_macro = self.lctx().in_macro
-        return res
-
-    def copy(self):
-        res = Context()
-        res.lctx_stack = [lctx.copy() for lctx in self.lctx_stack]
-        res.macros = self.macros.copy()
-        res.known_values = copy.deepcopy(self.known_values)
-
-        return res
-
-    def pop_lctx(self, repeated):
-        at = self.lctx().current_ptr
-        inv_id = self.lctx().inv_id
-        stable = self.lctx().is_stable_relative_to(self.lctx_stack[-2])
-
-        cell_actions = self.lctx().cell_actions
-
-        self.lctx_stack.pop()
-
-        if inv_id != self.lctx().inv_id:
-            self.lctx().named_locations = {}
-            self.lctx().inv_id = inv_id
-
-        for loc, act in cell_actions.items():
-            if repeated:
-                act = act.repeated()
-                self.known_values[loc].apply_action(act)
-
-            self.lctx().cell_actions[loc] = act.perform_after(self.lctx().cell_actions[loc])
-
-        if repeated and not stable:
-            self.lctx().cell_actions.clear()
-            self.known_values = defaultdict(lambda: KnownValue(None))
-
-        self.lctx().current_ptr = at
-
-    def apply_action(self, action):
-        self.known_values[self.lctx().current_ptr].apply_action(action)
-        self.lctx().apply_action(action)
+    print("delta1 =", delta1)
+    print("delta2 =", delta2)
+    print("delta1 o delta2 =", delta1.with_appended(delta2))
