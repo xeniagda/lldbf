@@ -72,17 +72,20 @@ class State:
         self.ptr_id = 0
 
         self.macros = {}
+        self.named_locations = {} # {name: idx}
 
     def with_delta_applied(self, delta):
         result = State()
         result.ptr = self.ptr + delta.ptr_delta
         result.ptr_id = self.ptr_id
+        result.named_locations = self.named_locations.copy()
         result.cell_values = self.cell_values.copy()
 
         if delta.ptr_id_delta != 0:
             result.cell_values = defaultdict(lambda x: None)
             result.ptr = 0
             result.ptr_id = self.ptr_id + delta.ptr_id_delta
+            result.named_locations = {}
 
         for idx, action in delta.cell_actions.items():
             idx = idx + result.ptr
@@ -94,7 +97,7 @@ class State:
         return result
 
     def __str__(self):
-        return f'State(vals={dict(self.cell_values)}, ptr={self.ptr}, ptr_id={self.ptr_id})'
+        return f'State(vals={dict(self.cell_values)}, ptr={self.ptr}, ptr_id={self.ptr_id}, locs={self.named_locations})'
 
 if __name__ == "__main__":
     # Ad-hoc tests
