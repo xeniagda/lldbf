@@ -3,7 +3,7 @@ from collections import defaultdict
 from abc import ABC, abstractmethod
 from bfppfile import Span, BFPPFile
 from error import *
-from context import Context, LocalContext, KnownValue
+from context import State, StateDelta
 from cell_action import *
 
 class BFPPToken(ABC):
@@ -15,6 +15,9 @@ class BFPPToken(ABC):
     def into_bf(self, ctx):
         pass
 
+    @abstractmethod
+    def get_delta(self, ctx):
+        pass
 
 class Debug(BFPPToken):
     def __init__(self, span):
@@ -27,6 +30,9 @@ class Debug(BFPPToken):
         print("    ctx =", ctx)
 
         return ""
+
+    def get_delta(self, ctx):
+        return StateDelta()
 
     def __str__(self):
         return "debug"
@@ -42,20 +48,23 @@ class BFToken(BFPPToken):
         self.token = token
 
     def into_bf(self, ctx):
+        return self.token
+
+    def get_delta(self, ctx):
         if self.token == ">":
-            ctx.lctx().current_ptr += 1
+            return StateDelta(1)
+
         elif self.token == "<":
-            ctx.lctx().current_ptr -= 1
+            return StateDelta(-1)
 
         if self.token == "+":
-            ctx.apply_action(Delta(self.span, 1))
+            return StateDelta.do_action(Delta(self.span, 1))
+
         if self.token == "-":
-            ctx.apply_action(Delta(self.span, -1))
+            return StateDelta.do_action(Delta(self.span, -1))
 
         if self.token == ",":
-            ctx.apply_action(Unknown(self.span))
-
-        return self.token
+            return StateDelta.do_action(Unknown(self.span))
 
     def __str__(self):
         return self.token
@@ -73,7 +82,18 @@ class TokenList(BFPPToken):
         res = ""
         for x in self.tokens:
             res += x.into_bf(ctx)
+            ctx = ctx.with_delta_applied(x.get_delta(ctx))
+
         return res
+
+    def get_delta(self, ctx):
+        total_delta = StateDelta()
+        for x in self.tokens:
+            delta = x.get_delta(ctx)
+            ctx = ctx.with_delta_applied(delta)
+            total_delta = total_delta @ delta
+
+        return total_delta
 
     def __str__(self):
         return "(" + "".join(map(str, self.tokens)) + ")"
@@ -89,44 +109,31 @@ class BFLoop(BFPPToken):
         self.is_stable = is_stable
 
     def into_bf(self, ctx):
-        is_effective = ctx.known_values[ctx.lctx().current_ptr].value != 0
+        is_effective = ctx.cell_values[ctx.ptr] != 0
 
-        last_ctx = ctx.lctx()
+        if not is_effective:
+            warn = IneffectiveLoopWarning(self.span, ctx)
+            # TODO: Fix error/warnings before showing
+            # warn.show()
 
-        if self.is_stable:
-            new_lctx = ctx.new_lctx()
+        if is_effective:
+            return "[" + self.inner.into_bf(ctx) + "]"
         else:
-            new_lctx = LocalContext(0, {}, ctx.lctx().inv_id + 1)
-        ctx.lctx_stack.append(new_lctx)
+            return ""
 
-        loop_content = self.inner.into_bf(ctx)
+    def get_delta(self, ctx):
+        inner_delta = self.inner.get_delta(ctx)
 
-        is_stable = ctx.lctx().is_stable_relative_to(last_ctx)
-        if is_stable and not self.is_stable:
-            # TODO: Give warning
-            pass
-
-        if not is_stable and self.is_stable:
+        if self.is_stable and not inner_delta.is_stable():
             er = LoopNotStableError(
                 self.span,
                 ctx,
             )
             er.show()
             ctx.n_errors += 1
+        # Maybe warn on unneeded unstable loop
 
-        ctx.pop_lctx(repeated=True)
-
-        if not is_effective and not ctx.lctx().in_macro:
-            if not ctx.lctx().in_macro:
-                warn = IneffectiveLoopWarning(self.span, ctx)
-                warn.show()
-
-        ctx.apply_action(Clear(self.span))
-
-        if is_effective:
-            return "[" + loop_content + "]"
-        else:
-            return ""
+        return inner_delta.repeated()
 
     def __str__(self):
         return "[" + str(self.inner) + "]"
@@ -134,7 +141,7 @@ class BFLoop(BFPPToken):
     def __repr__(self):
         return "Loop(stable=" + str(self.is_stable) + "inner=" + repr(self.inner) + ")"
 
-
+# TODO: Update the rest!
 class Repetition(BFPPToken):
     def __init__(self, span, inner, count):
         super().__init__(span)

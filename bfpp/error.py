@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import ascii_tools as f
-from cell_action import Clear
+from cell_action import SetTo
 from bfppfile import Span
 
 class Message(ABC):
@@ -80,7 +80,7 @@ class IneffectiveLoopWarning(Warn):
         # TODO: Maybe show where the Clear came from
         value = self.ctx.known_values[self.ctx.lctx().current_ptr]
 
-        clears = [x for x in value.action_history if isinstance(x, Clear) and x.span is not None]
+        clears = [x for x in value.action_history if isinstance(x, SetTo) and x.span is not None]
 
         if len(clears) == 0:
             return ["This cell's value has not changed since the beginning of the program"]
