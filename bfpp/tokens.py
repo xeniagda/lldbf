@@ -28,6 +28,7 @@ class Debug(BFPPToken):
         print("\n".join(self.span.show_ascii_art()))
         print("Info:")
         print("    ctx =", ctx)
+        print()
 
         return ""
 
@@ -113,8 +114,7 @@ class BFLoop(BFPPToken):
 
         if not is_effective:
             warn = IneffectiveLoopWarning(self.span, ctx)
-            # TODO: Fix error/warnings before showing
-            # warn.show()
+            warn.show()
 
         if is_effective:
             return "[" + self.inner.into_bf(ctx) + "]"
@@ -213,14 +213,17 @@ class LocGoto(BFPPToken):
         return "LocGoto(" + self.location + ")"
 
     def into_bf(self, ctx):
-        if self.location in ctx.lctx().named_locations:
-            mem_idx = ctx.lctx().named_locations[self.location]
-            delta = mem_idx - ctx.lctx().current_ptr
-            ctx.lctx().current_ptr = mem_idx
-            if delta > 0:
-                return ">" * delta
-            else:
-                return "<" * (-delta)
+        delta = self.get_delta(ctx)
+        if delta.ptr_delta > 0:
+            return ">" * delta.ptr_delta
+        else:
+            return "<" * (-delta.ptr_delta)
+
+    def get_delta(self, ctx):
+        if self.location in ctx.named_locations:
+            mem_idx = ctx.named_locations[self.location]
+            delta = mem_idx - ctx.ptr
+            return StateDelta(delta)
         else:
             er = MemNotFoundError(
                 self.span,
@@ -229,7 +232,7 @@ class LocGoto(BFPPToken):
             )
             er.show()
             ctx.n_errors += 1
-            return ""
+            return StateDelta(0)
 
 class AssumeStable(BFPPToken):
     def __init__(self, span, content):
