@@ -6,16 +6,22 @@ from cell_action import *
 VERBOSE = True
 
 # Difference between two states in the execution of a program.
+# a @ b = apply a, then apply b
 class StateDelta:
     def __init__(self, ptr_delta=0):
         self.cell_actions = {} # {idx: cell_action}
         self.ptr_delta = ptr_delta
         self.ptr_id_delta = 0 # Sometimes, the pointer location becomes unknown. The pointer id is what the pointer delta is relative to
 
+    def do_action(action):
+        st = StateDelta()
+        st.cell_actions[0] = action
+        return st
+
     def is_stable(self):
         return self.ptr_delta == self.ptr_id_delta == 0
 
-    def with_appended(self, other):
+    def __matmul__(self, other):
         if other.ptr_id_delta != 0:
             # If the next delta makes the pointer indeterminate, what we know now is useless
             return other
@@ -97,6 +103,6 @@ if __name__ == "__main__":
 
     print("delta1 =", delta1)
     print("delta2 =", delta2)
-    print("delta1 o delta2 =", delta1.with_appended(delta2))
+    print("delta1 o delta2 =", delta1 @ delta2)
 
     print("delta2^inf =", delta2.repeated())
