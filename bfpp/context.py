@@ -71,11 +71,13 @@ class State:
         self.ptr = 0
         self.ptr_id = 0
 
+        self.macros = {}
+
     def with_delta_applied(self, delta):
         result = State()
 
         if delta.ptr_id_delta != 0:
-            result.cell_values = {}
+            result.cell_values = defaultdict(lambda x: None)
             result.ptr = 0
             result.ptr_id = self.ptr_id + delta_ptr_id_delta
 
