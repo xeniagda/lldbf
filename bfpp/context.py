@@ -35,6 +35,25 @@ class StateDelta:
 
         return resulting
 
+    def copy(self):
+        res = StateDelta()
+        res.cell_actions = self.cell_actions.copy()
+        res.ptr_delta = self.ptr_delta
+        res.ptr_id_delta = self.ptr_id_delta
+        return res
+
+    def repeated(self):
+        res = StateDelta()
+        res.ptr_delta = self.ptr_delta
+        res.ptr_id_delta = self.ptr_id_delta
+
+        if not self.is_stable():
+            res.ptr_id_delta += 1
+            return res
+
+        res.cell_actions = {idx: action.repeated() for idx, action in self.cell_actions.items()}
+        return res
+
     def __str__(self):
         return f'StateDelta(actions={self.cell_actions}, Δptr={self.ptr_delta}, Δp_id={self.ptr_id_delta})'
 
@@ -69,6 +88,7 @@ if __name__ == "__main__":
     delta1.cell_actions[0] = Delta(None, 3)
     delta1.cell_actions[1] = Unknown(None)
     delta1.cell_actions[2] = Delta(None, 1)
+    delta1.cell_actions[3] = SetTo(None, 7)
     delta1.ptr_delta = 2
 
     delta2 = StateDelta()
@@ -78,3 +98,5 @@ if __name__ == "__main__":
     print("delta1 =", delta1)
     print("delta2 =", delta2)
     print("delta1 o delta2 =", delta1.with_appended(delta2))
+
+    print("delta2^inf =", delta2.repeated())
