@@ -170,7 +170,6 @@ class Repetition(BFPPToken):
             ctx = ctx.with_delta_applied(self.inner.get_delta(ctx))
         return total
 
-# TODO: Update the rest!
 class LocDec(BFPPToken):
     def __init__(self,  span, locations, active_idx):
         super().__init__(span)
@@ -194,9 +193,12 @@ class LocDec(BFPPToken):
     def into_bf(self, ctx):
         for i, name in enumerate(self.locations):
             delta_ptr = i - self.active_idx
-            ctx.lctx().named_locations[name] = ctx.lctx().current_ptr + delta_ptr
+            ctx.named_locations[name] = ctx.ptr + delta_ptr
 
         return ""
+
+    def get_delta(self, ctx):
+        return StateDelta()
 
 
 class LocGoto(BFPPToken):
