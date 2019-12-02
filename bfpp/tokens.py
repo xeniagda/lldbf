@@ -246,22 +246,14 @@ class AssumeStable(BFPPToken):
         return "AssumeStable(content=" + repr(self.content) + ")"
 
     def into_bf(self, ctx):
-        curr_lctx = ctx.lctx().copy()
+        return self.content.into_bf(ctx)
 
-        res = self.content.into_bf(ctx)
+    def get_delta(self, ctx):
+        inner_delta = self.content.get_delta(ctx)
+        inner_delta.ptr_delta = 0
+        inner_delta.ptr_id_delta = 0
 
-        ptr_diff = curr_lctx.current_ptr - ctx.lctx().current_ptr
-
-        ctx.lctx_stack[-1] = curr_lctx
-
-        # Shift known values
-        old_known = copy.deepcopy(ctx.known_values)
-        ctx.known_values.clear()
-
-        for idx, val in old_known.items():
-            ctx.known_values[idx + ptr_diff] = val
-
-        return res
+        return inner_delta
 
 class DeclareMacro(BFPPToken):
     def __init__(self, span, name, args, content):
