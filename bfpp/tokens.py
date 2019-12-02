@@ -133,7 +133,9 @@ class BFLoop(BFPPToken):
             ctx.n_errors += 1
         # Maybe warn on unneeded unstable loop
 
-        return inner_delta.repeated()
+        res = inner_delta.repeated()
+        reset_current = StateDelta.do_action(SetTo(self.span, 0))
+        return res @ reset_current
 
     def __str__(self):
         return "[" + str(self.inner) + "]"
@@ -141,7 +143,6 @@ class BFLoop(BFPPToken):
     def __repr__(self):
         return "Loop(stable=" + str(self.is_stable) + "inner=" + repr(self.inner) + ")"
 
-# TODO: Update the rest!
 class Repetition(BFPPToken):
     def __init__(self, span, inner, count):
         super().__init__(span)
@@ -158,9 +159,18 @@ class Repetition(BFPPToken):
         res = ""
         for i in range(self.count):
             res += self.inner.into_bf(ctx)
+            ctx = ctx.with_delta_applied(self.inner.get_delta(ctx))
+
         return res
 
+    def get_delta(self, ctx):
+        total = StateDelta()
+        for i in range(self.count):
+            total @= self.inner.get_delta(ctx)
+            ctx = ctx.with_delta_applied(self.inner.get_delta(ctx))
+        return total
 
+# TODO: Update the rest!
 class LocDec(BFPPToken):
     def __init__(self,  span, locations, active_idx):
         super().__init__(span)

@@ -90,6 +90,9 @@ class State:
 
         return result
 
+    def __str__(self):
+        return f'State(vals={dict(self.cell_values)}, ptr={self.ptr}, ptr_id={self.ptr_id})'
+
 if __name__ == "__main__":
     # Ad-hoc tests
     delta1 = StateDelta()
