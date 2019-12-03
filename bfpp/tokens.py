@@ -119,12 +119,21 @@ class BFLoop(BFPPToken):
             warn = IneffectiveLoopWarning(self.span, ctx)
             warn.show()
 
+        # When generating the inner code, we want to generate code assuming the loop has already run
+        # an indeterminate number of times.
+        # Eg. if inner loops over some value which is currently zero, and then modifies the value
+        # afterwards, we don't want to optimize the loop
+
+        preloop = self.get_inner_delta_rep(ctx)
+        ctx = ctx.with_delta_applied(preloop)
+
         if is_effective:
             return "[" + self.inner.into_bf(ctx) + "]"
         else:
+            # Maybe evaluate inner.into_bf(ctx) to check for warnings?
             return ""
 
-    def get_delta(self, ctx):
+    def get_inner_delta_rep(self, ctx):
         inner_delta = self.inner.get_delta(ctx)
 
         if self.is_stable and not inner_delta.is_stable():
@@ -135,9 +144,21 @@ class BFLoop(BFPPToken):
             )
             er.show()
             ctx.n_errors += 1
+
+            # Assume the intention was to write a stable loop
+            inner_delta.ptr_delta = 0
+            inner_delta.ptr_id_delta = 0
+
+        if not self.is_stable:
+            inner_delta.ptr_delta = 0
+            inner_delta.ptr_id_delta += 1
+
         # Maybe warn on unneeded unstable loop
 
-        res = inner_delta.repeated()
+        return inner_delta.repeated()
+
+    def get_delta(self, ctx):
+        res = self.get_inner_delta_rep(ctx)
         reset_current = StateDelta.do_action(SetTo(self.span, 0))
 
         return res @ reset_current
