@@ -70,6 +70,8 @@ class Delta(CellAction):
         return Unknown(None)
 
     def repeated(self):
+        if self.amount == 0:
+            return self
         return Unknown(None)
 
     def apply_to_value(self, value):
