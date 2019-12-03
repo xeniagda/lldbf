@@ -136,6 +136,7 @@ class BFLoop(BFPPToken):
 
         res = inner_delta.repeated()
         reset_current = StateDelta.do_action(SetTo(self.span, 0))
+
         return res @ reset_current
 
     def __str__(self):
@@ -312,7 +313,7 @@ class InvokeMacro(BFPPToken):
         return "Invoke(name=" + self.name + ",args=(" + ",".join(
             self.args) + ")"
 
-    def into_bf(self, ctx):
+    def get_code_and_subctx(self, ctx):
         if self.name not in ctx.macros.keys():
             # TODO: Search for macros with similar names?
             er = Error(
@@ -339,7 +340,7 @@ class InvokeMacro(BFPPToken):
             var_name = self.args[i]
             arg_name = fn.args.locations[i]
 
-            if var_name not in ctx.lctx().named_locations:
+            if var_name not in ctx.named_locations:
                 er = MemNotFoundError(
                     self.span,
                     var_name,
@@ -350,22 +351,26 @@ class InvokeMacro(BFPPToken):
 
                 return ""
 
-            arg_locs[arg_name] = ctx.lctx().named_locations[var_name]
+            arg_locs[arg_name] = ctx.named_locations[var_name]
 
-        new_lctx = ctx.new_lctx()
-        new_lctx.in_macro = True
-        new_lctx.named_locations = arg_locs
-        ctx.lctx_stack.append(new_lctx)
+        sub_ctx = State()
+        sub_ctx.macros = ctx.macros
+        sub_ctx.ptr = ctx.ptr
+        sub_ctx.cell_values = ctx.cell_values
 
-        # Go to the active arg in the function
+        sub_ctx.named_locations = arg_locs
+
         goto = LocGoto(self.span, fn.args.locations[fn.args.active_idx])
-        code = goto.into_bf(ctx)
+        fn_with_goto = TokenList(self.span, [goto, fn.content])
 
-        # Invoke function
-        code += fn.content.into_bf(ctx)
+        return fn_with_goto, sub_ctx
 
-        # Pop the function ctx
-        ctx.pop_lctx(repeated=False)
+    def into_bf(self, ctx):
+        f, sub_ctx = self.get_code_and_subctx(ctx)
 
-        return code
+        return f.into_bf(sub_ctx)
 
+    def get_delta(self, ctx):
+        f, sub_ctx = self.get_code_and_subctx(ctx)
+
+        return f.get_delta(sub_ctx)
