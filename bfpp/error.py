@@ -78,49 +78,38 @@ class IneffectiveLoopWarning(Warn):
 
     def notes(self):
         # TODO: Maybe show where the Clear came from
-        value = self.ctx.known_values[self.ctx.lctx().current_ptr]
-
-        clears = [x for x in value.action_history if isinstance(x, SetTo) and x.span is not None]
-
-        if len(clears) == 0:
-            return ["This cell's value has not changed since the beginning of the program"]
-        else:
-            last_clear = clears[-1]
-            span = last_clear.span
-            return ["This cell was last cleared from here:", span]
+        return []
 
 class LoopNotStableError(BaseError):
-    def __init__(self, span, ctx):
+    def __init__(self, span, ctx, inner_delta):
         super(LoopNotStableError, self).__init__(span)
         self.ctx = ctx
+        self.inner_delta = inner_delta
 
     def msg(self):
         return "Loop marked as stable is not stable!"
 
     def notes(self):
-        last_ctx = self.ctx.lctx_stack[-2]
-
-        if self.ctx.lctx().inv_id != last_ctx.inv_id:
+        if self.inner_delta.ptr_id_delta != 0:
             return ["This loop might contain some unstable element(s)"]
         else:
             starts_at = [
                 name
-                for name, pos in self.ctx.lctx().named_locations.items()
-                if pos == self.ctx.lctx().origin
+                for name, pos in self.ctx.named_locations.items()
+                if pos == self.ctx.ptr
             ]
 
             ends_up_at = [
                 name
-                for name, pos in self.ctx.lctx().named_locations.items()
-                if pos == self.ctx.lctx().current_ptr
+                for name, pos in self.ctx.named_locations.items()
+                if pos == self.ctx.ptr + self.inner_delta.ptr_delta
             ]
 
             note = "loop ends up at "
-            diff = self.ctx.lctx().current_ptr - self.ctx.lctx().origin
-            if diff > 0:
-                note += "+" + str(diff)
+            if self.inner_delta.ptr_delta > 0:
+                note += "+" + str(self.inner_delta.ptr_delta)
             else:
-                note += str(diff)
+                note += str(self.inner_delta.ptr_delta)
 
             if len(starts_at) > 0 and len(ends_up_at) > 0:
                 note_extra = "that is at " + f.var(ends_up_at[0]) + " instead of " + f.var(starts_at[0])
@@ -138,6 +127,6 @@ class MemNotFoundError(BaseError):
         return "Could not find memory location " + f.var(self.varname)
 
     def notes(self):
-        if len(self.ctx.lctx().named_locations) > 0:
-            return ["Defined locations: " + ", ".join(map(f.var, self.ctx.lctx().named_locations.keys()))]
+        if len(self.ctx.named_locations) > 0:
+            return ["Defined locations: " + ", ".join(map(f.var, self.ctx.named_locations.keys()))]
         return []

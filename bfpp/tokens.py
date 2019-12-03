@@ -131,6 +131,7 @@ class BFLoop(BFPPToken):
             er = LoopNotStableError(
                 self.span,
                 ctx,
+                inner_delta,
             )
             er.show()
             ctx.n_errors += 1
@@ -325,7 +326,7 @@ class InvokeMacro(BFPPToken):
             er.show()
             ctx.n_errors += 1
 
-            return ""
+            return TokenList(self.span, []), ctx
 
         fn = ctx.macros[self.name]
         if len(self.args) != len(fn.args.locations):
@@ -351,7 +352,7 @@ class InvokeMacro(BFPPToken):
                 er.show()
                 ctx.n_errors += 1
 
-                return ""
+                return TokenList(self.span, []), ctx
 
             arg_locs[arg_name] = ctx.named_locations[var_name]
 

@@ -73,6 +73,8 @@ class State:
         self.macros = {}
         self.named_locations = {} # {name: idx}
 
+        self.n_errors = 0
+
     def with_delta_applied(self, delta):
         result = State()
         result.ptr = self.ptr + delta.ptr_delta
@@ -80,6 +82,7 @@ class State:
         result.named_locations = self.named_locations.copy()
         result.cell_values = self.cell_values.copy()
         result.macros = self.macros.copy()
+        result.n_errors = self.n_errors
 
         if delta.ptr_id_delta != 0:
             result.cell_values = defaultdict(lambda: None)
