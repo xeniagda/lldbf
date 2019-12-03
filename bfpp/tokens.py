@@ -85,7 +85,7 @@ class TokenList(BFPPToken):
         res = ""
         for x in self.tokens:
             res += x.into_bf(ctx)
-            delta = x.get_delta(ctx)
+            delta = x.get_delta(ctx.silent())
             ctx = ctx.with_delta_applied(delta)
 
         return res
@@ -115,7 +115,7 @@ class BFLoop(BFPPToken):
     def into_bf(self, ctx):
         is_effective = ctx.cell_values[ctx.ptr] != 0
 
-        if not is_effective:
+        if not ctx.quiet and not is_effective:
             warn = IneffectiveLoopWarning(self.span, ctx)
             warn.show()
 
@@ -136,7 +136,7 @@ class BFLoop(BFPPToken):
     def get_inner_delta_rep(self, ctx):
         inner_delta = self.inner.get_delta(ctx)
 
-        if self.is_stable and not inner_delta.is_stable():
+        if not ctx.quiet and self.is_stable and not inner_delta.is_stable():
             er = LoopNotStableError(
                 self.span,
                 ctx,
@@ -185,7 +185,7 @@ class Repetition(BFPPToken):
         res = ""
         for i in range(self.count):
             res += self.inner.into_bf(ctx)
-            ctx = ctx.with_delta_applied(self.inner.get_delta(ctx))
+            ctx = ctx.with_delta_applied(self.inner.get_delta(ctx.silent()))
 
         return res
 
@@ -251,13 +251,14 @@ class LocGoto(BFPPToken):
             delta = mem_idx - ctx.ptr
             return StateDelta(delta)
         else:
-            er = MemNotFoundError(
-                self.span,
-                self.location,
-                ctx,
-            )
-            er.show()
-            ctx.n_errors += 1
+            if not ctx.quiet:
+                er = MemNotFoundError(
+                    self.span,
+                    self.location,
+                    ctx,
+                )
+                er.show()
+                ctx.n_errors += 1
             return StateDelta(0)
 
 class AssumeStable(BFPPToken):
@@ -297,7 +298,7 @@ class DeclareMacro(BFPPToken):
             self.args) + ",content=" + repr(self.content) + ")"
 
     def into_bf(self, ctx):
-        if self.name in ctx.macros.keys():
+        if not ctx.quiet and self.name in ctx.macros.keys():
             er = Error(
                 self.span,
                 msg="`" + str(self.name) + "` is already defined"
@@ -310,6 +311,7 @@ class DeclareMacro(BFPPToken):
         dry_ctx.macros = ctx.macros
         # Make sure all values are unknown
         dry_ctx.cell_values = defaultdict(lambda: None)
+        dry_ctx.quiet = ctx.quiet
 
         # Fill in args
         for i, arg in enumerate(self.args.locations):
@@ -338,7 +340,7 @@ class InvokeMacro(BFPPToken):
             self.args) + ")"
 
     def get_code_and_subctx(self, ctx):
-        if self.name not in ctx.macros.keys():
+        if not ctx.quiet and self.name not in ctx.macros.keys():
             # TODO: Search for macros with similar names?
             er = Error(
                 self.span,
@@ -350,7 +352,7 @@ class InvokeMacro(BFPPToken):
             return TokenList(self.span, []), ctx
 
         fn = ctx.macros[self.name]
-        if len(self.args) != len(fn.args.locations):
+        if not ctx.quiet and len(self.args) != len(fn.args.locations):
             er = Error(
                 self.span,
                 msg="Expected {} variables, got {}".format(len(fn.args.locations), len(self.args)),
@@ -364,7 +366,7 @@ class InvokeMacro(BFPPToken):
             var_name = self.args[i]
             arg_name = fn.args.locations[i]
 
-            if var_name not in ctx.named_locations:
+            if not ctx.quiet and var_name not in ctx.named_locations:
                 er = MemNotFoundError(
                     self.span,
                     var_name,

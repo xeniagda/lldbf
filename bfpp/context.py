@@ -75,6 +75,14 @@ class State:
 
         self.n_errors = 0
 
+        self.quiet = False
+
+    def silent(self):
+        copy = self.with_delta_applied(StateDelta())
+        copy.quiet = True
+
+        return copy
+
     def with_delta_applied(self, delta):
         result = State()
         result.ptr = self.ptr + delta.ptr_delta
@@ -83,6 +91,7 @@ class State:
         result.cell_values = self.cell_values.copy()
         result.macros = self.macros.copy()
         result.n_errors = self.n_errors
+        result.quiet = self.quiet
 
         if delta.ptr_id_delta != 0:
             result.cell_values = defaultdict(lambda: None)
