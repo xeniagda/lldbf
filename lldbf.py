@@ -211,23 +211,13 @@ def pretty_print_code_slice(units,
 import sys
 sys.path.append('bfpp')
 
-from parse import parse
-from context import Context
-from postproc import postproc
-from init_macros import INIT_MACROS
+from main import compile_path_to_str
 
 def read_units(args):
     if len(args) == 2 and args[0] == "-c":
-        code = open(args[1]).read()
+        path = args[1]
 
-        tokens = parse(args[1], code)
-        ctx = Context()
-        ctx.macros = INIT_MACROS
-        res = tokens.into_bf(ctx)
-        if ctx.n_errors != 0:
-            exit()
-
-        code_str = postproc(res)
+        code_str = compile_path_to_str(path)
         print(code_str)
     elif len(args) == 1:
         code_str = open(args[0]).read()

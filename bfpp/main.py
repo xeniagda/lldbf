@@ -4,19 +4,29 @@ from context import State
 from postproc import postproc
 from init_macros import INIT_MACROS
 
-if len(argv) == 2:
-    # Read file
-    code = open(argv[1], "r").read()
-else:
-    print("Please provide a file!")
-    exit()
 
-tokens = parse(argv[1], code)
+def compile_path_to_str(path):
+    code = open(path, "r").read()
+    tokens = parse(path, code)
 
-ctx = State()
-ctx.macros = INIT_MACROS
+    ctx = State()
+    ctx.macros = INIT_MACROS
 
-res = tokens.into_bf(ctx)
+    res = tokens.into_bf(ctx)
 
-#if ctx.n_errors == 0:
-print(postproc(res))
+    if ctx.n_errors == 0:
+        return postproc(res)
+    else:
+        print("Compilation failed due to", ctx.n_errors, "errors")
+        exit()
+
+if __name__ == "__main__":
+    if len(argv) == 2:
+        # Read file
+        path = argv[1]
+    else:
+        print("Please provide a file!")
+        exit()
+
+    compiled = compile_path_to_str(path)
+    print(compiled)
