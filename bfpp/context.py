@@ -79,6 +79,7 @@ class State:
         result.ptr_id = self.ptr_id
         result.named_locations = self.named_locations.copy()
         result.cell_values = self.cell_values.copy()
+        result.macros = self.macros.copy()
 
         if delta.ptr_id_delta != 0:
             result.cell_values = defaultdict(lambda: None)
