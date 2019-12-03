@@ -22,6 +22,7 @@ def print10(? >n divider div mod tmp1 tmp2) {
     inv divmod(mod divider div n tmp1 tmp2)
 
     // If div != 0, print div
+    // BUG: Check that the previous div was not 0!
     (!div) [
         // Print div = n % 100 / 10
         inv add48(div tmp1)
@@ -32,6 +33,6 @@ def print10(? >n divider div mod tmp1 tmp2) {
 }
 
 (? >n tmp1 tmp2 tmp3 tmp4 tmp5)
-inv add211(n tmp1)
+inv add104(n tmp1)
 
 inv print10(n tmp1 tmp2 tmp3 tmp4 tmp5)
