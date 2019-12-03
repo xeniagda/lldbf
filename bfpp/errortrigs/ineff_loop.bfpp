@@ -11,3 +11,12 @@
 def zero_check(? a >b c) {
     (!a) [-] [-]
 }
+
+// Negative case 1: recursive loop
+
+(? >a b)
++++ [
+    (!b) [-] // Should not be optimized, b is changed later in the loop
+    (!b) +
+    (!a)
+]

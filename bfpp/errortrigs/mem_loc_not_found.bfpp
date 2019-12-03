@@ -5,6 +5,7 @@
 
 // Case 2: variable exists, removed due to unstable loop
 
++
 unstable[
     (!b)
 ]

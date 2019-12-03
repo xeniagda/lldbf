@@ -1,12 +1,26 @@
 (?a >b c)
 
+(!b) ,
+
 // Case 1, move to known
 (!b) [
     (!c)
 ]
+
+(?a >b c)
+
+(!b) ,
 
 // Case 2, move to unknown
 (!b) [
     (!c) >>
 ]
 
+// Case 3, unstable in stable
+
+(? a >b c)
+
+(!b) + // Make sure the loop is not optimized out
+(!b) [
+     unstable [>]
+]
