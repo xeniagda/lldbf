@@ -67,6 +67,8 @@ class BFToken(BFPPToken):
         if self.token == ",":
             return StateDelta.do_action(Unknown(self.span))
 
+        return StateDelta(0)
+
     def __str__(self):
         return self.token
 

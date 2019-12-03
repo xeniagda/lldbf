@@ -32,12 +32,12 @@ class StateDelta:
 
         resulting.cell_actions = self.cell_actions.copy()
 
-        for idx, action in other.cell_actions.items():
-            my_idx = idx + self.ptr_delta
-            if my_idx in self.cell_actions:
-                resulting.cell_actions[my_idx] = action.perform_after(self.cell_actions[my_idx])
+        for rel_idx, action in other.cell_actions.items():
+            idx = self.ptr_delta + rel_idx
+            if idx in self.cell_actions:
+                resulting.cell_actions[idx] = action.perform_after(self.cell_actions[idx])
             else:
-                resulting.cell_actions[my_idx] = action
+                resulting.cell_actions[idx] = action
 
         return resulting
 
@@ -88,7 +88,7 @@ class State:
             result.named_locations = {}
 
         for idx, action in delta.cell_actions.items():
-            idx = idx + result.ptr
+            idx += self.ptr
             value = self.cell_values[idx]
 
             res_value = action.apply_to_value(value)
