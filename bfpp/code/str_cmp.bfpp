@@ -69,21 +69,13 @@ assume stable {
     (!n_marker)
 ]
 
-(? any_wrong is_wrong isnt_wrong >P_marker)
-
-// Set is_wrong = 1 if any_wrong, else isnt_wrong = 1
-// Makes it easier to do an if-statement
+(? any_wrong isnt_wrong _ >P_marker)
 
 (!isnt_wrong) +
 (!any_wrong) [
-    (!isnt_wrong) -
-    (!is_wrong) +
-    (!any_wrong) [-]
-]
 
-(!is_wrong) [
     // Print "diff"
-    (? tmp >ch)
+    (? >_ tmp ch)
     (!ch) [-]
 
     // d = 100
@@ -98,7 +90,9 @@ assume stable {
     inv dec3(ch tmp)
     (!ch) . .
 
-    (!is_wrong) [-]
+    (!isnt_wrong) [-]
+
+    (!any_wrong) [-]
 ]
 
 (!isnt_wrong) [
@@ -128,6 +122,7 @@ assume stable {
 
     (!isnt_wrong) [-]
 ]
+
 // Newline
 (? >ch tmp)
 (!ch) [-]
