@@ -1,0 +1,135 @@
+// Layout:
+// c1 = char from str 1
+// c2 = char from str 2
+// marker = 1
+// (c1 c2 marker) ...
+
+(? >P_marker f_ch1 f_ch2 f_marker)
+
+// Read s1
+assume stable {
+    (!f_ch1) ,
+    inv dec32(f_ch1 f_ch2)
+    unstable [
+        (? >c_ch1 c_ch2 c_marker n_ch1 n_ch2)
+        inv add32(c_ch1 c_ch2)
+
+        (!c_marker) +
+        (!n_ch1) ,
+        inv dec32(n_ch1 n_ch2)
+    ]
+
+    (? l_marker >P_ch1)
+    (!l_marker) unstable [
+        (? p_marker _ _ >c_marker)
+        (!p_marker)
+    ]
+}
+
+// Read s2
+assume stable {
+    (!f_ch2) ,
+    unstable [
+        (? >c_ch2 c_marker n_ch1 n_ch2)
+
+        // Set c_marker to 1 by clearing it and increasing it
+        (!c_marker) [-] +
+
+        (!n_ch2) ,
+    ]
+    (? l_marker P_ch1 >P_ch2)
+    (!l_marker) unstable [
+        (? p_marker _ _ >c_marker)
+        (!p_marker)
+    ]
+}
+
+// Check if the strings match
+(!f_marker) unstable [
+    (? any_wrong c_ch1 c_ch2 >c_marker _ _ n_marker)
+
+    // Subtract c_ch1 from c_ch2
+    (!c_ch1) [
+        (!c_ch2) -
+        (!c_ch1) -
+    ]
+    // If ch2 != 0, set any_wrong to 1
+    (!c_ch2) [
+        (!any_wrong) [-] +
+        (!c_ch2) [-]
+    ]
+
+    // Move any_wrong to c_marker
+    (!c_marker) [-]
+    (!any_wrong) [
+        (!c_marker) +
+        (!any_wrong) -
+    ]
+
+    (!n_marker)
+]
+
+(? any_wrong is_wrong isnt_wrong >P_marker)
+
+// Set is_wrong = 1 if any_wrong, else isnt_wrong = 1
+// Makes it easier to do an if-statement
+
+(!isnt_wrong) +
+(!any_wrong) [
+    (!isnt_wrong) -
+    (!is_wrong) +
+    (!any_wrong) [-]
+]
+
+(!is_wrong) [
+    // Print "diff"
+    (? tmp >ch)
+    (!ch) [-]
+
+    // d = 100
+    inv add100(ch tmp)
+    (!ch) .
+
+    // i = 105, delta = 5
+    inv add5(ch tmp)
+    (!ch) .
+
+    // f = 102, delta = -3
+    inv dec3(ch tmp)
+    (!ch) . .
+
+    (!is_wrong) [-]
+]
+
+(!isnt_wrong) [
+    // Print "match"
+    (? >ch tmp)
+    (!ch) [-]
+
+    // m = 109
+    inv add109(ch tmp)
+    (!ch) .
+
+    // i = 97, delta = -12
+    inv dec12(ch tmp)
+    (!ch) .
+
+    // t = 116, delta = 19
+    inv add19(ch tmp)
+    (!ch) .
+
+    // c = 99, delta = -17
+    inv dec17(ch tmp)
+    (!ch) .
+
+    // h = 104, delta = 5
+    inv add5(ch tmp)
+    (!ch) .
+
+    (!isnt_wrong) [-]
+]
+// Newline
+(? >ch tmp)
+(!ch) [-]
+inv add10(ch tmp)
+(!ch) .
