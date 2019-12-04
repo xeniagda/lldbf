@@ -276,7 +276,10 @@ class AssumeStable(BFPPToken):
         return "AssumeStable(content=" + repr(self.content) + ")"
 
     def into_bf(self, ctx):
-        return self.content.into_bf(ctx)
+        inner_code = self.content.into_bf(ctx)
+        # For safety, assume all cells were modified
+        ctx.cell_values = defaultdict(lambda: None)
+        return inner_code
 
     def get_delta(self, ctx):
         inner_delta = self.content.get_delta(ctx)
