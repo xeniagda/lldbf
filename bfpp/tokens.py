@@ -125,10 +125,12 @@ class BFLoop(BFPPToken):
         # afterwards, we don't want to optimize the loop
 
         preloop = self.get_inner_delta_rep(ctx)
+
         ctx = ctx.with_delta_applied(preloop)
 
+        code = "[" + self.inner.into_bf(ctx) + "]"
         if is_effective:
-            return "[" + self.inner.into_bf(ctx) + "]"
+            return code
         else:
             # Maybe evaluate inner.into_bf(ctx) to check for warnings?
             return ""
@@ -217,13 +219,14 @@ class LocDec(BFPPToken):
             ) + ")"
 
     def into_bf(self, ctx):
+        self.get_delta(ctx)
+        return ""
+
+    def get_delta(self, ctx):
         for i, name in enumerate(self.locations):
             delta_ptr = i - self.active_idx
             ctx.named_locations[name] = ctx.ptr + delta_ptr
 
-        return ""
-
-    def get_delta(self, ctx):
         return StateDelta()
 
 
