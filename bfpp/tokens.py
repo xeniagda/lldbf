@@ -389,6 +389,7 @@ class InvokeMacro(BFPPToken):
         sub_ctx.macros = ctx.macros
         sub_ctx.ptr = ctx.ptr
         sub_ctx.cell_values = ctx.cell_values
+        sub_ctx.quiet = True
 
         sub_ctx.named_locations = arg_locs
 
