@@ -49,3 +49,21 @@ run macroname(varname, ...)
 ```
 #include <xyz.bfpp>
 ```
+
+## Loops
+
+### Stable loops
+
+As normal in brainfuck
+
+```
+[ code ]
+```
+
+### Unstable loops
+
+```
+unstable [ code ]
+```
+
+
