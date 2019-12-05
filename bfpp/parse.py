@@ -15,6 +15,7 @@ block: bftoken
      | dec_macro
      | run_macro
      | loop
+     | assume_stable
      | preproc_directive
      | debug
      | _paren_group
@@ -48,6 +49,8 @@ unstable_loop: "unstable" "[" main "]"
 
 loop: stable_loop
     | unstable_loop
+
+assume_stable: "assume" "stable" "{" main "}"
 
 ?path: /[\w.\/]+/
 
@@ -146,6 +149,12 @@ class ParseTransformer(Transformer):
         stable, cont = args[0]
 
         return BFLoop(self.meta2span(meta), stable, cont)
+
+    @v_args(meta=True)
+    def assume_stable(self, args, meta):
+        cont = args[0]
+
+        return AssumeStable(self.meta2span(meta), cont)
 
     def include(self, args):
         path = args[0]
