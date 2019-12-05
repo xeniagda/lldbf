@@ -1,28 +1,29 @@
-def divmod  (? >number denom div mod tmp2 tmp1) {
+def divmod (number, denom, div, mod, tmp2, tmp1) at number {
 [
-    (!number) -
-    (!mod) +
+    to number -
+    to mod +
 
     // Copy mod to tmp1
-    [(!tmp1)+ (!tmp2) + (!mod) -]
-    (!tmp2) [(!mod) + (!tmp2)-]
+    to mod  [ to tmp1 + to tmp2 + to mod - ]
+    to tmp2 [ to mod  + to tmp2 - ]
 
     // Subtract denom from tmp1
-    (!denom) [(!tmp1) - (!tmp2) + (!denom) -]
-    (!tmp2) [ (!denom) + (!tmp2) -]
+    to denom [ to tmp1 - to tmp2 + to denom -]
+    to tmp2 [ to denom + to tmp2 -]
 
     // If tmp1 == 0, set tmp2 <- 1
-    (!tmp2) +
-    (!tmp1)
-    [(!tmp2) [-] (!tmp1) [-]]
+    to tmp2 +
+    to tmp1
+    [to tmp2 [-] to tmp1 [-]]
 
     // If tmp2 == 1, increase div, reset mod
-    (!tmp2) [
-        (!div) +
-        (!mod) [-]
-        (!tmp2) -
+    to tmp2 [
+        to div +
+        to mod [-]
+        to tmp2 -
     ]
 
-    (!number)
+    to number
 ]
 }
+

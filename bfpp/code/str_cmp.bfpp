@@ -4,127 +4,132 @@
 // marker = 1
 // (c1 c2 marker) ...
 
-(? >P_marker f_ch1 f_ch2 f_marker)
+declare (P_marker, f_ch1, f_ch2, f_marker) at P_marker
 
 // Read s1
 assume stable {
-    (!f_ch1) ,
-    inv dec32(f_ch1 f_ch2)
+    to f_ch1 ,
+    run dec32(f_ch1, f_ch2)
+    to f_ch1
     unstable [
-        (? >c_ch1 c_ch2 c_marker n_ch1 n_ch2)
-        inv add32(c_ch1 c_ch2)
+        declare (c_ch1, c_ch2, c_marker, n_ch1, n_ch2) at c_ch1
+        run add32(c_ch1, c_ch2)
 
-        (!c_marker) +
-        (!n_ch1) ,
-        inv dec32(n_ch1 n_ch2)
+        to c_marker +
+        to n_ch1 ,
+        run dec32(n_ch1, n_ch2)
     ]
 
-    (? l_marker >P_ch1)
-    (!l_marker) unstable [
-        (? p_marker _ _ >c_marker)
-        (!p_marker)
+    declare (l_marker, P_ch1) at P_ch1
+
+    to l_marker
+    unstable [
+        declare (p_marker, _, _, c_marker) at c_marker
+        to p_marker
     ]
 }
 
 // Read s2
 assume stable {
-    (!f_ch2) ,
+    to f_ch2 ,
     unstable [
-        (? >c_ch2 c_marker n_ch1 n_ch2)
+        declare (c_ch2, c_marker, n_ch1, n_ch2) at c_ch2
 
         // Set c_marker to 1 by clearing it and increasing it
-        (!c_marker) [-] +
+        to c_marker [-] +
 
-        (!n_ch2) ,
+        to n_ch2 ,
     ]
-    (? l_marker P_ch1 >P_ch2)
-    (!l_marker) unstable [
-        (? p_marker _ _ >c_marker)
-        (!p_marker)
+    declare (l_marker, P_ch1, P_ch2) at P_ch2
+    to l_marker
+    unstable [
+        declare (p_marker, _, _, c_marker) at c_marker
+        to p_marker
     ]
 }
 
 // Check if the strings match
-(!f_marker) unstable [
-    (? any_wrong c_ch1 c_ch2 >c_marker _ _ n_marker)
+to f_marker
+unstable [
+    declare (any_wrong, c_ch1, c_ch2, c_marker, _, _, n_marker) at c_marker
 
     // Subtract c_ch1 from c_ch2
-    (!c_ch1) [
-        (!c_ch2) -
-        (!c_ch1) -
+    to c_ch1 [
+        to c_ch2 -
+        to c_ch1 -
     ]
     // If ch2 != 0, set any_wrong to 1
-    (!c_ch2) [
-        (!any_wrong) [-] +
-        (!c_ch2) [-]
+    to c_ch2 [
+        to any_wrong [-] +
+        to c_ch2 [-]
     ]
 
     // Move any_wrong to c_marker
-    (!c_marker) [-]
-    (!any_wrong) [
-        (!c_marker) +
-        (!any_wrong) -
+    to c_marker [-]
+    to any_wrong [
+        to c_marker +
+        to any_wrong -
     ]
 
-    (!n_marker)
+    to n_marker
 ]
 
-(? any_wrong isnt_wrong _ >P_marker)
+declare (any_wrong, isnt_wrong, _, P_marker) at P_marker
 
-(!isnt_wrong) +
-(!any_wrong) [
+to isnt_wrong +
+to any_wrong [
 
     // Print "diff"
-    (? >_ tmp ch)
-    (!ch) [-]
+    declare (_, tmp, ch) at _
+    to ch [-]
 
     // d = 100
-    inv add100(ch tmp)
-    (!ch) .
+    run add100(ch, tmp)
+    to ch .
 
     // i = 105, delta = 5
-    inv add5(ch tmp)
-    (!ch) .
+    run add5(ch, tmp)
+    to ch .
 
     // f = 102, delta = -3
-    inv dec3(ch tmp)
-    (!ch) . .
+    run dec3(ch, tmp)
+    to ch . .
 
-    (!isnt_wrong) [-]
+    to isnt_wrong [-]
 
-    (!any_wrong) [-]
+    to any_wrong [-]
 ]
 
-(!isnt_wrong) [
+to isnt_wrong [
     // Print "match"
-    (? >ch tmp)
-    (!ch) [-]
+    declare (ch, tmp) at ch
+    to ch [-]
 
     // m = 109
-    inv add109(ch tmp)
-    (!ch) .
+    run add109(ch, tmp)
+    to ch .
 
     // i = 97, delta = -12
-    inv dec12(ch tmp)
-    (!ch) .
+    run dec12(ch, tmp)
+    to ch .
 
     // t = 116, delta = 19
-    inv add19(ch tmp)
-    (!ch) .
+    run add19(ch, tmp)
+    to ch .
 
     // c = 99, delta = -17
-    inv dec17(ch tmp)
-    (!ch) .
+    run dec17(ch, tmp)
+    to ch .
 
     // h = 104, delta = 5
-    inv add5(ch tmp)
-    (!ch) .
+    run add5(ch, tmp)
+    to ch .
 
-    (!isnt_wrong) [-]
+    to isnt_wrong [-]
 ]
 
 // Newline
-(? >ch tmp)
-(!ch) [-]
-inv add10(ch tmp)
-(!ch) .
+declare (ch, tmp) at ch
+to ch [-]
+run add10(ch, tmp)
+to ch .

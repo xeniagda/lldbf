@@ -1,0 +1,12 @@
+#include divmod.bfpp
+
+declare (n, denom, div, mod, tmp1, tmp2) at n
+
+run add50(n, tmp1)
+run add3(denom, tmp1)
+
+run divmod(n, denom, div, mod, tmp1, tmp2)
+
+to div
+
+

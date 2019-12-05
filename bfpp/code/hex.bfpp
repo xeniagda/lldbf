@@ -1,21 +1,21 @@
 #include hexdigit.bfpp
 #include divmod.bfpp
 
-(? >input denom div_res tmp2 tmp1 mod_res)
+declare (input, denom, div_res, tmp2, tmp1, mod_res) at input
 
-inv add16(denom input)
+run add16(denom, input)
 
-(!input) , [
-    inv divmod(input denom div_res mod_res tmp1 tmp2)
+to input , [
+    run divmod(input, denom, div_res, mod_res, tmp1, tmp2)
 
-    inv digit2hex(div_res tmp1 tmp2)
-    (!div_res) . [-]
+    run digit2hex(div_res, tmp1, tmp2)
+    to div_res . [-]
 
-    inv digit2hex(mod_res tmp1 tmp2)
-    (!mod_res) . [-]
+    run digit2hex(mod_res, tmp1, tmp2)
+    to mod_res . [-]
 
-    inv add32(tmp2 tmp1)
-    (!tmp2) . [-]
+    run add32(tmp2, tmp1)
+    to tmp2 . [-]
 
-    (!input) ,
+    to input ,
 ]
