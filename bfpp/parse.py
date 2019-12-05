@@ -2,60 +2,58 @@ import os
 from tokens import *
 from lark import Lark, Transformer, v_args
 from bfppfile import BFPPFile, Span
+from error import *
 
 grammar = r"""
-bfpp: bfpp_block+
 
-?bfpp_block: bf_stmt
-           | repetition
-           | loc_dec
-           | loc_goto
-           | dec_macro
-           | assume_stable
-           | inv_macro
-           | directive
-           | debug
+main: block+
+
+block: bftoken
+     | repetition
+     | loc_dec
+     | loc_goto
+     | dec_macro
+     | run_macro
+     | loop
+     | preproc_directive
+     | debug
+     | _paren_group
+
+_paren_group: "(" main ")"
+
+!bftoken: "+"
+        | "-"
+        | "<"
+        | ">"
+        | "."
+        | ","
+
+repetition: block INT
 
 locname: /[\w\d_]+/
 
-locname_inactive: locname
-locname_active: ">" locname
+loc_dec_bare: "(" locname ("," locname) * ")" "at" locname
 
-loc_dec: "(?" locname_inactive* locname_active locname_inactive* ")"
+loc_dec: "declare" loc_dec_bare
 
-loc_goto: "(!" locname ")"
+loc_goto: "to" locname
 
-dec_macro: "def" locname loc_dec "{" bfpp "}"
+dec_macro: "def" locname loc_dec_bare "{" main "}"
 
-inv_macro: "inv" locname "(" locname* ")"
+run_loc: "(" locname ("," locname) * ")"
+run_macro: "run" locname run_loc
 
-assume_stable: "assume" "stable" "{" bfpp* "}"
+stable_loop: "[" main "]"
+unstable_loop: "unstable" "[" main "]"
 
-repetition: cont_group INT
+loop: stable_loop
+    | unstable_loop
 
-?cont_group: bfpp_block
-           | "(" bfpp ")"
-
-?bf_stmt: bf_basic_token
-        | stable_loop
-        | unstable_loop
-
-stable_loop: "[" bfpp "]"
-unstable_loop: "unstable" "[" bfpp "]"
-
-!bf_basic_token: "+"
-               | "-"
-               | "<"
-               | ">"
-               | "."
-               | ","
-
-?directive: include
+?path: /[\w.\/]+/
 
 include: "#" "include" path
 
-?path: /[\w.]+/
-
+preproc_directive: include
 debug: "debug"
 
 COMMENT: "/*" /(.|\n)*?/ "*/"
@@ -67,7 +65,7 @@ COMMENT: "/*" /(.|\n)*?/ "*/"
 %ignore WS
 """
 
-parser = Lark(grammar, start="bfpp", propagate_positions=True)
+parser = Lark(grammar, start="main", propagate_positions=True)
 
 
 class ParseTransformer(Transformer):
@@ -78,71 +76,76 @@ class ParseTransformer(Transformer):
         return Span(self.bfile, meta.start_pos, meta.end_pos)
 
     @v_args(meta=True)
-    def bfpp(self, blocks, meta):
-        return TokenList(self.meta2span(meta), blocks)
+    def main(self, args, meta):
+        return TokenList(self.meta2span(meta), args)
 
-    def bfpp_block(self, args):
-        return args
+    def block(self, args):
+        return args[0]
+
+    @v_args(meta=True)
+    def bftoken(self, args, meta):
+        return BFToken(self.meta2span(meta), args[0])
 
     @v_args(meta=True)
     def repetition(self, args, meta):
         return Repetition(self.meta2span(meta), args[0], int(args[1]))
 
-    @v_args(meta=True)
-    def bf_basic_token(self, args, meta):
-        return BFToken(self.meta2span(meta), args[0])
-
-    @v_args(meta=True)
-    def stable_loop(self, args, meta):
-        return BFLoop(self.meta2span(meta), True, args[0])
-
-    @v_args(meta=True)
-    def unstable_loop(self, args, meta):
-        return BFLoop(self.meta2span(meta), False, args[0])
-
     def locname(self, args):
         return args[0].value
 
-    def locname_inactive(self, args):
-        return ("ln", args[0])
+    @v_args(meta=True)
+    def loc_dec_bare(self, args, meta):
+        *names, active = args
 
-    def locname_active(self, args):
-        return ("ln_a", args[0])
+        if active not in names:
+            err = DeclareLocnameNotFound(self.meta2span(meta), active, names)
+            err.show()
+            idx = 0
+        else:
+            idx = names.index(active)
+
+        return (names, idx)
 
     @v_args(meta=True)
     def loc_dec(self, args, meta):
-        locs = []
-        active = -1
-        for i, x in enumerate(args):
-            if x[0] == "ln_a":
-                active = i
-            locs.append(x[1])
-        return LocDec(self.meta2span(meta), locs, active)
+        names, idx = args[0]
+
+        return LocDec(self.meta2span(meta), names, idx)
 
     @v_args(meta=True)
     def loc_goto(self, args, meta):
-        return LocGoto(self.meta2span(meta), args[0])
+        name = args[0]
+
+        return LocGoto(self.meta2span(meta), name)
 
     @v_args(meta=True)
     def dec_macro(self, args, meta):
-        name, args, content = args
+        mac_name, (names, idx), code = args
 
-        return DeclareMacro(self.meta2span(meta), name, args, content)
+        locdec = LocDec(self.meta2span(meta), names, idx)
 
-    @v_args(meta=True)
-    def inv_macro(self, args, meta):
-        fn_name = args[0]
-        args_for_function = args[1:]
+        return DeclareMacro(self.meta2span(meta), mac_name, locdec, code)
 
-        return InvokeMacro(self.meta2span(meta), fn_name, args_for_function)
+    def run_loc(self, args):
+        return args
 
     @v_args(meta=True)
-    def debug(self, args, meta):
-        return Debug(self.meta2span(meta))
+    def run_macro(self, args, meta):
+        name, args = args
+
+        return InvokeMacro(self.meta2span(meta), name, args)
+
+    def stable_loop(self, args):
+        return True, args[0]
+
+    def unstable_loop(self, args):
+        return False, args[0]
 
     @v_args(meta=True)
-    def assume_stable(self, args, meta):
-        return AssumeStable(self.meta2span(meta), args[0])
+    def loop(self, args, meta):
+        stable, cont = args[0]
+
+        return BFLoop(self.meta2span(meta), stable, cont)
 
     def include(self, args):
         path = args[0]
@@ -150,6 +153,9 @@ class ParseTransformer(Transformer):
         inc_filepath = os.path.join(folder, path)
 
         return parse(path, open(inc_filepath).read())
+
+    def preproc_directive(self, args):
+        return args[0]
 
 def parse(filename, code):
     bfile = BFPPFile(filename, code)
@@ -160,24 +166,21 @@ def parse(filename, code):
     return tokens
 
 if __name__ == "__main__":
-    tokens = parse("print_zts.bfpp", """
-    def print_clear_zts (?>start) {
-        (!start) [-]
+    tokens = parse("print_zts.bfpp", """\
 
-        >
-        [.>]<
-        [<]
-    }
+def add48(val, temp) at temp {
+    +6 [
+        to val +8
+        to temp -
+    ]
+}
 
-    > 3
-    (?x >y i j k z)
-    inv add69(x y)
-    inv add65(i y)
-    inv add66(j k)
-    inv add67(k z)
+declare (n, tmp) at n
 
-    inv print_clear_zts(y)
+run add48(n, tmp)
+
+to n .
 
     """)
     print(repr(tokens))
-    print(tokens.into_bf(Context()))
+    print(tokens.into_bf(State()))

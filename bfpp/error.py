@@ -130,3 +130,17 @@ class MemNotFoundError(BaseError):
         if len(self.ctx.named_locations) > 0:
             return ["Defined locations: " + ", ".join(map(f.var, self.ctx.named_locations.keys()))]
         return []
+
+class DeclareLocnameNotFound(BaseError):
+    def __init__(self, span, varname, others):
+        super(DeclareLocnameNotFound, self).__init__(span)
+        self.varname = varname
+        self.others = others
+
+    def msg(self):
+        return "Could not find memory location " + f.var(self.varname)
+
+    def notes(self):
+        # TODO: Find closest and display
+        return []
+
