@@ -100,7 +100,7 @@ class TokenList(BFPPToken):
         return total_delta
 
     def __str__(self):
-        return "(" + "".join(map(str, self.tokens)) + ")"
+        return "(" + ";".join(map(str, self.tokens)) + ")"
 
     def __repr__(self):
         return "TokenList(" + ",".join(map(repr, self.tokens)) + ")"
@@ -199,70 +199,51 @@ class Repetition(BFPPToken):
         return total
 
 class LocDec(BFPPToken):
-    def __init__(self,  span, locations, active_idx):
+    def __init__(self,  span, bare):
         super().__init__(span)
-        self.locations = locations
-        self.active_idx = active_idx
-
-    def __str__(self):
-        return \
-            "(?" + \
-            " ".join(
-                (">" if i == self.active_idx else "") + x for i, x in enumerate(self.locations)
-            ) + ")"
+        self.bare = bare
 
     def __repr__(self):
-        return \
-            "LocDec(" + \
-            " ".join(
-                (">" if i == self.active_idx else "") + x for i, x in enumerate(self.locations)
-            ) + ")"
+        return "LocDec(" + repr(self.bare) + ")"
+
+    def __str__(self):
+        return "declare " + str(self.bare)
 
     def into_bf(self, ctx):
         self.get_delta(ctx)
         return ""
 
     def get_delta(self, ctx):
-        for i, name in enumerate(self.locations):
-            delta_ptr = i - self.active_idx
-            ctx.named_locations[name] = ctx.ptr + delta_ptr
+        for name, idx in self.bare.get_var_offsets().items():
+            ctx.named_locations[name] = ctx.ptr + idx
 
         return StateDelta()
 
 
 class LocGoto(BFPPToken):
-    def __init__(self, span, loc):
+    def __init__(self, span, path):
         super().__init__(span)
-        self.location = loc
+        self.path = path
 
     def __str__(self):
-        return "(!" + self.location + ")"
+        return "to " + str(self.path)
 
     def __repr__(self):
-        return "LocGoto(" + self.location + ")"
+        return "LocGoto(" + repr(self.path) + ")"
 
     def into_bf(self, ctx):
         delta = self.get_delta(ctx)
+
         if delta.ptr_delta > 0:
             return ">" * delta.ptr_delta
         else:
             return "<" * (-delta.ptr_delta)
 
     def get_delta(self, ctx):
-        if self.location in ctx.named_locations:
-            mem_idx = ctx.named_locations[self.location]
-            delta = mem_idx - ctx.ptr
-            return StateDelta(delta)
-        else:
-            if not ctx.quiet:
-                er = MemNotFoundError(
-                    self.span,
-                    self.location,
-                    ctx,
-                )
-                er.show()
-                ctx.n_errors += 1
-            return StateDelta(0)
+        at = self.path.get_location(ctx)
+
+        delta = at - ctx.ptr
+        return StateDelta(delta)
 
 class AssumeStable(BFPPToken):
     def __init__(self, span, content):
@@ -296,12 +277,12 @@ class DeclareMacro(BFPPToken):
         self.content = content
 
     def __str__(self):
-        return "define " + self.name + str(self.args) + "{" + str(
+        return "def " + self.name + str(self.args) + "{" + str(
             self.content) + "}"
 
     def __repr__(self):
-        return "Define(name=" + self.name + ",args=" + repr(
-            self.args) + ",content=" + repr(self.content) + ")"
+        return "Define(" + self.name + "," + repr(
+            self.args) + "," + repr(self.content) + ")"
 
     def into_bf(self, ctx):
         if not ctx.quiet and self.name in ctx.macros.keys():
@@ -311,6 +292,7 @@ class DeclareMacro(BFPPToken):
             )
             er.show()
             ctx.n_errors += 1
+            return ""
 
         # Dry-run macro to check for errors/warnings
         dry_ctx = State()
@@ -320,8 +302,8 @@ class DeclareMacro(BFPPToken):
         dry_ctx.quiet = ctx.quiet
 
         # Fill in args
-        for i, arg in enumerate(self.args.locations):
-            dry_ctx.named_locations[arg] = i - self.args.active_idx
+        for arg, at in self.args.get_var_offsets().items():
+            dry_ctx.named_locations[arg] = at
 
         _ = self.content.into_bf(dry_ctx)
         _ = self.content.get_delta(dry_ctx)
@@ -337,13 +319,13 @@ class InvokeMacro(BFPPToken):
         super().__init__(span)
         self.name = name
         self.args = args
+        print("Created run with args", type(args))
 
     def __str__(self):
-        return "invoke " + self.name + "(" + ",".join(self.args) + ")"
+        return "invoke " + self.name + str(self.args)
 
     def __repr__(self):
-        return "Invoke(name=" + self.name + ",args=(" + ",".join(
-            self.args) + ")"
+        return "Invoke(" + self.name + "," + str(self.args) + ")"
 
     def get_code_and_subctx(self, ctx):
         if not ctx.quiet and self.name not in ctx.macros.keys():
@@ -358,7 +340,7 @@ class InvokeMacro(BFPPToken):
             return TokenList(self.span, []), ctx
 
         fn = ctx.macros[self.name]
-        if not ctx.quiet and len(self.args) != len(fn.args.locations):
+        if not ctx.quiet and len(self.args) != len(fn.args.declarations):
             er = Error(
                 self.span,
                 msg="Expected {} variables, got {}".format(len(fn.args.locations), len(self.args)),
@@ -368,22 +350,11 @@ class InvokeMacro(BFPPToken):
 
         arg_locs = {}
         # Assign addresses for arguments
-        for i in range(len(self.args)):
-            var_name = self.args[i]
-            arg_name = fn.args.locations[i]
+        path_argnames = zip(self.args, fn.args.declarations)
+        for i, (path, argname) in enumerate(path_argnames):
+            loc = path.get_location(ctx)
 
-            if not ctx.quiet and var_name not in ctx.named_locations:
-                er = MemNotFoundError(
-                    self.span,
-                    var_name,
-                    ctx,
-                )
-                er.show()
-                ctx.n_errors += 1
-
-                return TokenList(self.span, []), ctx
-
-            arg_locs[arg_name] = ctx.named_locations[var_name]
+            arg_locs[argname] = loc
 
         sub_ctx = State()
         sub_ctx.macros = ctx.macros
@@ -393,7 +364,7 @@ class InvokeMacro(BFPPToken):
 
         sub_ctx.named_locations = arg_locs
 
-        goto = LocGoto(self.span, fn.args.locations[fn.args.active_idx])
+        goto = LocGoto(self.span, fn.args.active_path)
         fn_with_goto = TokenList(self.span, [goto, fn.content])
 
         return fn_with_goto, sub_ctx
@@ -407,3 +378,62 @@ class InvokeMacro(BFPPToken):
         f, sub_ctx = self.get_code_and_subctx(ctx)
 
         return f.get_delta(sub_ctx)
+
+
+class Path:
+    def __init__(self, span, parts):
+        self.span = span
+        self.parts = parts
+
+    def __repr__(self):
+        return "Path(" + ".".join(self.parts) + ")"
+
+    def __str__(self):
+        return ".".join(self.parts)
+
+    def get_location(self, ctx):
+        if len(self.parts) == 1:
+            name = self.parts[0]
+            if name in ctx.named_locations:
+                return ctx.named_locations[name]
+            else:
+                if not ctx.quiet:
+                    er = MemNotFoundError(
+                        self.span,
+                        str(self),
+                        ctx,
+                    )
+                    er.show()
+                    ctx.n_errors += 1
+                return 0
+        else:
+            if not ctx.quiet:
+                er = Error(
+                    self.span,
+                    "Types are not yet implemented"
+                )
+                er.show()
+                ctx.n_errors += 1
+            return 0
+
+class LocDecBare:
+    def __init__(self, span, declarations, active_path):
+        self.span = span
+
+        self.declarations = declarations
+        self.active_path = active_path
+
+    def get_var_offsets(self):
+        offset = None
+        result_relative = {}
+        for i, name in enumerate(self.declarations):
+            result_relative[name] = i
+            if name == self.active_path.parts[0]:
+                offset = i
+
+        return {name: i - offset for name, i in result_relative.items()}
+    def __repr__(self):
+        return "LocDecBare([" + ",".join(self.declarations) + "]," + repr(self.active_path) + ")"
+
+    def __str__(self):
+        return "(" + ", ".join(self.declarations) + ") at " + str(self.active_path)

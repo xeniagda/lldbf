@@ -31,18 +31,19 @@ _paren_group: "(" main ")"
 
 repetition: block INT
 
-locname: /[\w\d_]+/
+varname: /[\w\d_]+/
+path: varname ("." varname)*
 
-loc_dec_bare: "(" locname ("," locname) * ")" "at" locname
+loc_dec_bare: "(" varname ("," varname) * ")" "at" path
 
 loc_dec: "declare" loc_dec_bare
 
-loc_goto: "to" locname
+loc_goto: "to" path
 
-dec_macro: "def" locname loc_dec_bare "{" main "}"
+dec_macro: "def" varname loc_dec_bare "{" main "}"
 
-run_loc: "(" locname ("," locname) * ")"
-run_macro: "run" locname run_loc
+run_args: "(" path ("," path) * ")"
+run_macro: "run" varname run_args
 
 stable_loop: "[" main "]"
 unstable_loop: "unstable" "[" main "]"
@@ -52,9 +53,9 @@ loop: stable_loop
 
 assume_stable: "assume" "stable" "{" main "}"
 
-?path: /[\w.\/]+/
+?filepath: /[\w.\/]+/
 
-include: "#" "include" path
+include: "#" "include" filepath
 
 preproc_directive: include
 debug: "debug"
@@ -93,43 +94,37 @@ class ParseTransformer(Transformer):
     def repetition(self, args, meta):
         return Repetition(self.meta2span(meta), args[0], int(args[1]))
 
-    def locname(self, args):
+    def varname(self, args):
         return args[0].value
+
+    @v_args(meta=True)
+    def path(self, args, meta):
+        return Path(self.meta2span(meta), args)
 
     @v_args(meta=True)
     def loc_dec_bare(self, args, meta):
         *names, active = args
 
-        if active not in names:
-            err = DeclareLocnameNotFound(self.meta2span(meta), active, names)
-            err.show()
-            idx = 0
-        else:
-            idx = names.index(active)
-
-        return (names, idx)
+        return LocDecBare(self.meta2span(meta), names, active)
 
     @v_args(meta=True)
     def loc_dec(self, args, meta):
-        names, idx = args[0]
+        bare = args[0]
 
-        return LocDec(self.meta2span(meta), names, idx)
+        return LocDec(self.meta2span(meta), bare)
 
     @v_args(meta=True)
     def loc_goto(self, args, meta):
-        name = args[0]
-
-        return LocGoto(self.meta2span(meta), name)
+        path = args[0]
+        return LocGoto(self.meta2span(meta), path)
 
     @v_args(meta=True)
     def dec_macro(self, args, meta):
-        mac_name, (names, idx), code = args
+        mac_name, bare, code = args
 
-        locdec = LocDec(self.meta2span(meta), names, idx)
+        return DeclareMacro(self.meta2span(meta), mac_name, bare, code)
 
-        return DeclareMacro(self.meta2span(meta), mac_name, locdec, code)
-
-    def run_loc(self, args):
+    def run_args(self, args):
         return args
 
     @v_args(meta=True)
@@ -177,19 +172,19 @@ def parse(filename, code):
 if __name__ == "__main__":
     tokens = parse("print_zts.bfpp", """\
 
-def add48(val, temp) at temp {
-    +6 [
-        to val +8
-        to temp -
+def add32(n, tmp) at tmp {
+    +8
+    [
+        to n +4
+        to tmp -
     ]
 }
 
-declare (n, tmp) at n
+declare (a, b) at b
 
-run add48(n, tmp)
-
-to n .
+run add32(a, b)
 
     """)
     print(repr(tokens))
+    print(tokens)
     print(tokens.into_bf(State()))
