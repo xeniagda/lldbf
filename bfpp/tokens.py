@@ -319,7 +319,6 @@ class InvokeMacro(BFPPToken):
         super().__init__(span)
         self.name = name
         self.args = args
-        print("Created run with args", type(args))
 
     def __str__(self):
         return "invoke " + self.name + str(self.args)
