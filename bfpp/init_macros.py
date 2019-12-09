@@ -18,41 +18,41 @@ def inc_by(n):
 for i in range(256):
     (x, y, z, k) = precomp_xyzk_list[i]
     clear_tmp = TokenList(PREGEN_SPAN, [
-        LocGoto(PREGEN_SPAN, "tmp"),
+        LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["tmp"])),
         BFLoop(PREGEN_SPAN, True, BFToken(PREGEN_SPAN, "-")),
     ])
 
     if y == z:
         fn_body = TokenList(PREGEN_SPAN, [
             clear_tmp,
-            LocGoto(PREGEN_SPAN, "res"),
+            LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["res"])),
             inc_by(k + x),
         ])
     elif y == 0:
         fn_body = TokenList(PREGEN_SPAN, [
             clear_tmp,
-            LocGoto(PREGEN_SPAN, "res"),
+            LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["res"])),
             inc_by(k),
         ])
     else:
         fn_body = TokenList(PREGEN_SPAN, [
             clear_tmp,
-            LocGoto(PREGEN_SPAN, "tmp"),
+            LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["tmp"])),
             inc_by(x),
             BFLoop(
                 None,
                 True,
                 TokenList(PREGEN_SPAN, [
-                    LocGoto(PREGEN_SPAN, "res"),
+                    LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["res"])),
                     inc_by(y),
-                    LocGoto(PREGEN_SPAN, "tmp"),
+                    LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["tmp"])),
                     inc_by(-z),
                 ])),
-            LocGoto(PREGEN_SPAN, "res"),
+            LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["res"])),
             inc_by(k),
         ])
 
-    args = LocDec(PREGEN_SPAN, ["res", "tmp"], 1)
+    args = LocDecBare(PREGEN_SPAN, ["res", "tmp"], Path(PREGEN_SPAN, ["tmp"]))
 
     fn = DeclareMacro(PREGEN_SPAN, "add" + str(i), args, fn_body)
     INIT_MACROS["add" + str(i)] = fn
@@ -62,4 +62,5 @@ for i in range(256):
         dec_n = 0
     fn = DeclareMacro(PREGEN_SPAN, "dec" + str(dec_n), args, fn_body)
     INIT_MACROS["dec" + str(dec_n)] = fn
+
 
