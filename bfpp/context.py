@@ -77,8 +77,11 @@ class State:
 
         self.quiet = False
 
+    def copy(self):
+        return self.with_delta_applied(StateDelta())
+
     def silent(self):
-        copy = self.with_delta_applied(StateDelta())
+        copy = self.copy()
         copy.quiet = True
 
         return copy
