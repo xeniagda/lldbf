@@ -161,6 +161,10 @@ class ParseTransformer(Transformer):
     def preproc_directive(self, args):
         return args[0]
 
+    @v_args(meta=True)
+    def debug(self, args, meta):
+        return Debug(self.meta2span(meta))
+
 def parse(filename, code):
     bfile = BFPPFile(filename, code)
 
