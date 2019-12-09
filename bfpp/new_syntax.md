@@ -66,4 +66,14 @@ As normal in brainfuck
 unstable [ code ]
 ```
 
+## Types
 
+```
+
+type chpair (
+    cell ch1,
+    cell ch2,
+)
+
+
+```
