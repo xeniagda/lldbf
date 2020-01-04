@@ -176,10 +176,10 @@ class GotoWide(BaseError):
         self.ctx = ctx
 
     def msg(self):
-        return "Cannot go to a wide type."
+        return f"Cannot go to a wide type {self.type_}."
 
     def notes(self):
         # TODO
         # Show some fields of size 1
-        size = ctx.t_get_size(self.type_)
+        size = self.ctx.t_get_size(self.type_)
         return [f"The type you're going to has a size of {size} bytes.", "Please go to some field of that type"]

@@ -52,7 +52,7 @@ for i in range(256):
             inc_by(k),
         ])
 
-    args = LocDecBare(PREGEN_SPAN, [("res", "Byte"), ("tmp", "Byte")], Path(PREGEN_SPAN, ["tmp"]))
+    args = LocDecBare(PREGEN_SPAN, [("res", "Byte"), ("tmp", "Byte")], (None, Path(PREGEN_SPAN, ["tmp"])))
 
     fn = DeclareMacro(PREGEN_SPAN, "add" + str(i), args, fn_body)
     INIT_MACROS["add" + str(i)] = fn

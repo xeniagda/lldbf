@@ -381,7 +381,7 @@ class InvokeMacro(BFPPToken):
             sub_ctx.named_locations[name] = location
             sub_ctx.name_type_names[name] = type_name
 
-        goto = LocGoto(self.span, fn.args.active_path)
+        goto = LocGoto(self.span, fn.args.relative[1])
         fn_with_goto = TokenList(self.span, [goto, fn.content])
 
         return fn_with_goto, sub_ctx
@@ -442,14 +442,27 @@ class Path:
         return var_offset + offset, type_
 
 class LocDecBare:
-    def __init__(self, span, declarations, active_path):
+    def __init__(self, span, declarations, relative):
         self.span = span
 
         self.declarations = declarations # List of tuples, [(name, type)]
-        self.active_path = active_path
+        self.relative = relative
 
     def get_var_offsets_and_type_names(self, ctx):
-        offset = None
+        if self.relative[0] == None:
+            rel_from_ptr = ctx.ptr
+        else:
+            loc, type_ = self.relative[0].get_location_and_type(ctx)
+            if ctx.t_get_size(type_) != 1:
+                if not ctx.quiet:
+                    err = GotoWide(self.span, type_, ctx)
+                    err.show()
+                    ctx.n_errors += 1
+
+            rel_from_ptr = loc
+
+        active_relative_ptr = None
+
         at = 0
         result_relative = {}
         for name, type_name in self.declarations:
@@ -465,25 +478,25 @@ class LocDecBare:
 
             result_relative[name] = (at, type_name)
 
-            if self.active_path.parts[0] == name:
-                offset_and_type = ctx.t_get_offset_and_type_for_path(type_name, self.active_path.parts[1:])
+            if self.relative[1].parts[0] == name:
+                offset_and_type = ctx.t_get_offset_and_type_for_path(type_name, self.relative[1].parts[1:])
                 if offset_and_type != None:
                     offset, type_ = offset_and_type
                     if ctx.t_get_size(type_) != 1:
                         if not ctx.quiet:
-                            err = GotoWide(self.span, type_)
+                            err = GotoWide(self.span, type_, ctx)
                             err.show()
                             ctx.n_errors += 1
 
-                    offset = at + offset_and_type[0]
+                    active_relative_ptr = at + offset
 
             at += ctx.t_get_size(type_name)
 
-        if offset is None:
+        if active_relative_ptr is None:
             if not ctx.quiet:
                 er = MemNotFoundError(
                     self.span,
-                    str(self.active_path),
+                    str(self.relative[1]),
                     ctx,
                 )
                 er.show()
@@ -491,8 +504,7 @@ class LocDecBare:
 
             offset = 0
 
-        return {name: (i - offset, type_name) for name, (i, type_name) in result_relative.items()}
-
+        return {name: (i - active_relative_ptr + ctx.ptr - rel_from_ptr, type_name) for name, (i, type_name) in result_relative.items()}
 
     def __repr__(self):
         return "LocDecBare([" + ",".join("(" + name + "," + repr(type_) + ")" for name, type_ in self.declarations) + "]," + repr(self.active_path) + ")"

@@ -39,7 +39,10 @@ typename: /[\w][\w\d_]+/
 vardec: varname ":" typename
       | varname // Default to Byte
 
-loc_dec_bare: "(" vardec ("," vardec) * ")" "at" path
+relative_spec: "at" path
+             | "with" path "at" path
+
+loc_dec_bare: "(" vardec ("," vardec) * ")" relative_spec
 
 loc_dec: "declare" loc_dec_bare
 
@@ -116,11 +119,16 @@ class ParseTransformer(Transformer):
     def path(self, args, meta):
         return Path(self.meta2span(meta), args)
 
+    def relative_spec(self, args):
+        if len(args) == 1:
+            return (None, args[0])
+        return (args[1], args[0])
+
     @v_args(meta=True)
     def loc_dec_bare(self, args, meta):
-        *names, active = args
+        *names, rel = args
 
-        return LocDecBare(self.meta2span(meta), names, active)
+        return LocDecBare(self.meta2span(meta), names, rel)
 
     @v_args(meta=True)
     def loc_dec(self, args, meta):
