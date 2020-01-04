@@ -1,3 +1,13 @@
+struct ChPair {
+    ch1: Byte,
+    ch2: Byte
+}
+
+struct LChPair {
+    ch_pair: ChPair,
+    marker: Byte,
+}
+
 // Layout:
 // c1 = char from str 1
 // c2 = char from str 2
