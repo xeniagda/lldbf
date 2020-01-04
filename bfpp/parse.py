@@ -18,6 +18,7 @@ block: bftoken
      | assume_stable
      | preproc_directive
      | debug
+     | type_dec
      | _paren_group
 
 _paren_group: "(" main ")"
@@ -67,6 +68,10 @@ include: "#" "include" filepath
 
 preproc_directive: include
 debug: "debug"
+
+field: varname ":" typename
+type_dec: "struct" typename "{" field ("," field) * "}"
+        | "struct" typename "{" (field ",") * "}"
 
 COMMENT: "/*" /(.|\n)*?/ "*/"
        | "//" /.*/
@@ -184,6 +189,15 @@ class ParseTransformer(Transformer):
     def preproc_directive(self, args):
         return args[0]
 
+    def field(self, args):
+        return (args[0], args[1])
+
+    @v_args(meta=True)
+    def type_dec(self, args, meta):
+        type_name, *fields = args
+
+        return TypeDec(self.meta2span(meta), type_name, fields)
+
     @v_args(meta=True)
     def debug(self, args, meta):
         return Debug(self.meta2span(meta))
@@ -199,9 +213,11 @@ def parse(filename, code):
 if __name__ == "__main__":
     tokens = parse("print_zts.bfpp", """\
 
-declare (a: ByteTuple, padding, b: ByteTuple) at a.f0
-to padding .
-to b.f1
+struct ChPair {
+    ch1: Byte,
+    ch2: Byte
+}
+
 
     """)
     print(repr(tokens))

@@ -408,6 +408,31 @@ class InvokeMacro(BFPPToken):
 
         return f.get_delta(sub_ctx)
 
+class TypeDec(BFPPToken):
+    def __init__(self, span, typename, fields):
+        super().__init__(span)
+
+        self.typename = typename
+        self.fields = fields
+
+    def __str__(self):
+        return "struct " + self.typename + "{" + ",".join(f + ": " + str(ty) for f, ty in self.fields) + "}"
+
+    def __repr__(self):
+        return "TypeDec(typename={}, fields={})".format(self.typename, self.fields)
+
+    def into_bf(self, ctx):
+        if self.typename in ctx.types.keys():
+            # Error?
+            pass
+
+        type_ = bfpp_types.Struct(self.fields)
+        ctx.types[self.typename] = type_
+
+        return ""
+
+    def get_delta(self, ctx):
+        return StateDelta()
 
 class Path:
     def __init__(self, span, parts):
@@ -529,3 +554,4 @@ class LocDecBare:
 
     def __str__(self):
         return "(" + ", ".join(name + ": " + str(type_) for name, type_ in self.declarations) + ") at " + str(self.active_path)
+
