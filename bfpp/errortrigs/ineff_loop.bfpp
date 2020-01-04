@@ -1,22 +1,24 @@
-(? >a)
+declare (a: Byte) at a
 
 // Case 1: Zero from start
-(!a) [-]
+to a [-]
 
 // Case 2: Zero from clear
 
-+ unstable [ > ] [-]
+, [>]
+[-]
 
 // Case 3: known inside macro
-def zero_check(? a >b c) {
-    (!a) [-] [-]
+def zero_check(a: Byte, b: Byte, c: Byte) at b {
+    to a [-] [-]
 }
 
 // Negative case 1: recursive loop
 
-(? >a b)
+declare (a: Byte, b: Byte) at a
+
 +++ [
-    (!b) [-] // Should not be optimized, b is changed later in the loop
-    (!b) +
-    (!a)
+    to b [-] // Should not be optimized, b is changed later in the loop
+    to b +
+    to a
 ]

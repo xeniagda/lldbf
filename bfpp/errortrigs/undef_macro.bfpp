@@ -1,1 +1,9 @@
-inv a()
+// Define some similarely named macros
+def x(a: Byte) at a { . }
+def y(a: Byte) at a { . }
+
+declare (x) at x
+
+// TODO
+// Create extra error because y is not defined
+run z(y, y)

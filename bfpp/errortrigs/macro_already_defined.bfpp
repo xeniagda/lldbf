@@ -1,7 +1,7 @@
-def a(? >a) {
-    (!a)
+def a(a: Byte) at a {
+    to a
 }
 
-def a(? b >a) {
-    (!b)
+def a(b: Byte, a: Byte) at a {
+    to b
 }

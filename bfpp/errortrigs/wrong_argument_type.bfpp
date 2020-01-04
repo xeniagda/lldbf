@@ -1,0 +1,6 @@
+def mac(x: Byte, y: Empty) at x {
+    to x
+}
+
+declare (x: Empty, y: Byte) at y
+run mac(x, y)

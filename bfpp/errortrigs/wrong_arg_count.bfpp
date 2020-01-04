@@ -1,6 +1,6 @@
-def mac(? >x y z) {
-    (!x)
+def mac(x: Byte, y: Byte, z: Byte) at y {
+    to x
 }
 
-(? >a b c)
-inv mac(a b)
+declare (a: Byte, b: Byte, c: Byte) at a
+run mac(a, b)

@@ -1,26 +1,30 @@
-(?a >b c)
+declare (a: Byte, b: Byte, c: Byte) at b
 
-(!b) ,
+to b ,
 
 // Case 1, move to known
-(!b) [
-    (!c)
+to b [
+    to c
 ]
 
-(?a >b c)
+// TODO
+// Move to field of known
 
-(!b) ,
+declare (a: Byte, b: Byte, c: Byte) at b
+
+to b,
 
 // Case 2, move to unknown
-(!b) [
-    (!c) >>
+to b [
+    to c >>
 ]
 
 // Case 3, unstable in stable
 
-(? a >b c)
+declare (a: Byte, b: Byte, c: Byte) at b
 
-(!b) + // Make sure the loop is not optimized out
-(!b) [
+to b + // Make sure the loop is not optimized out
+to b [
      unstable [>]
 ]
+

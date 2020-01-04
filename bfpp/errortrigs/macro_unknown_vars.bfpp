@@ -1,5 +1,7 @@
-def mac(? >a) {
-    (!a)
+def mac (a) at a {
+    to a
 }
 
-inv mac(b)
+declare (b) at b
+
+run mac(c)

@@ -1,11 +1,11 @@
-(? >a b)
+declare (first_variable: Byte, second_variable: Byte) at first_variable
 
 // Case 1: no such variable
-(!c)
+to third_variable
 
 // Case 2: variable exists, removed due to unstable loop
 
 +
-unstable[
-    (!b)
+unstable [
+    to first_variable
 ]
