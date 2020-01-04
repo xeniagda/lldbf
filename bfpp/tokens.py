@@ -296,7 +296,7 @@ class DeclareMacro(BFPPToken):
         if not ctx.quiet and self.name in ctx.macros.keys():
             er = Error(
                 self.span,
-                msg="`" + str(self.name) + "` is already defined"
+                msg="macro " + str(self.name) + " is already defined"
             )
             er.show()
             ctx.n_errors += 1
@@ -337,16 +337,17 @@ class InvokeMacro(BFPPToken):
         return "Invoke(" + self.name + "," + str(self.args) + ")"
 
     def get_code_and_subctx(self, ctx):
-        if not ctx.quiet and self.name not in ctx.macros.keys():
-            # TODO: Search for macros with similar names?
-            er = Error(
-                self.span,
-                msg="Macro `" + self.name + "` is not defined!",
-            )
-            er.show()
-            ctx.n_errors += 1
+        if self.name not in ctx.macros.keys():
+            if not ctx.quiet:
+                er = MacroNotFoundError(
+                    self.span,
+                    self.name,
+                    ctx,
+                )
+                er.show()
+                ctx.n_errors += 1
 
-            return TokenList(self.span, []), ctx
+            return TokenList(self.span, []), State()
 
         fn = ctx.macros[self.name]
 
@@ -360,23 +361,34 @@ class InvokeMacro(BFPPToken):
         # Fill in arguments and types
 
         if len(self.args) != len(fn.args.declarations):
-            er = Error(
+            er = WrongArgumentCount(
                 self.span,
-                msg="Wrong number of arguments! Expected {}, got {}".format(
-                    len(fn.args.declarations),
-                    len(self.args),
-                )
+                self.name,
+                self.args,
+                ctx,
             )
             er.show()
             ctx.n_errors += 1
 
+        invalid_types = False
         for arg, (name, (offset, type_name)) in zip(self.args, fn.args.get_var_offsets_and_type_names(ctx).items()):
             location, current_type_name = arg.get_location_and_type(ctx)
 
             if current_type_name != type_name:
-                # Commit error
-                print("bad type")
-                print(repr(name), repr(arg), "has type", repr(current_type_name), "we want", repr(type_name))
+                invalid_types = True
+
+                if not ctx.quiet:
+                    er = WrongArgumentType(
+                        self.span,
+                        self.name,
+                        name,
+                        arg,
+                        type_name,
+                        current_type_name,
+                        ctx,
+                    )
+                    er.show()
+                    ctx.n_errors += 1
 
             sub_ctx.named_locations[name] = location
             sub_ctx.name_type_names[name] = type_name
@@ -419,7 +431,7 @@ class Path:
                 )
                 er.show()
                 ctx.n_errors += 1
-            return 0
+            return 0, "Byte"
 
         var_offset = ctx.named_locations[name]
 
@@ -435,7 +447,7 @@ class Path:
                 )
                 er.show()
                 ctx.n_errors += 1
-            return 0, bfpp_types.Byte()
+            return 0, "Byte"
 
         offset, type_ = offset_and_type
 
@@ -470,10 +482,16 @@ class LocDecBare:
                 if not ctx.quiet:
                     er = TypeNotFound(
                         self.span,
-                        type_name
+                        type_name,
+                        ctx
                     )
                     er.show()
                     ctx.n_errors += 1
+
+                # We don't want to display a "Could not find memory location being declared..." error here
+                # So we do a special case
+                if name == self.relative[1].parts[0]:
+                    active_relative_ptr = at
                 continue
 
             result_relative[name] = (at, type_name)
@@ -494,15 +512,15 @@ class LocDecBare:
 
         if active_relative_ptr is None:
             if not ctx.quiet:
-                er = MemNotFoundError(
+                er = DeclareLocnameNotFound(
                     self.span,
                     str(self.relative[1]),
-                    ctx,
+                    self.declarations,
                 )
                 er.show()
                 ctx.n_errors += 1
 
-            offset = 0
+            active_relative_ptr = 0
 
         return {name: (i - active_relative_ptr + ctx.ptr - rel_from_ptr, type_name) for name, (i, type_name) in result_relative.items()}
 
