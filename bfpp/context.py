@@ -71,7 +71,10 @@ class State:
         self.ptr_id = 0
 
         self.macros = {}
+        self.types = {} # {name: type}
+
         self.named_locations = {} # {name: idx}
+        self.name_type_names = {} # {name: type_name}
 
         self.n_errors = 0
 
@@ -86,13 +89,36 @@ class State:
 
         return copy
 
+    def t_get_offset_and_type_for_path(self, typename, path_parts):
+        # Assume all fields are present
+        if path_parts == []:
+            return 0, typename
+
+        before_offset = 0
+        for field_name, field_type_name in self.types[typename].get_fields():
+            field_type = self.types[field_type_name]
+            if field_name == path_parts[0]:
+                inner = self.t_get_offset_and_type_for_path(field_type_name, path_parts[1:])
+                if inner == None:
+                    return None
+                return before_offset + inner[0], inner[1]
+            before_offset += self.t_get_size(field_type_name)
+
+        return None
+
+    def t_get_size(self, typename):
+        type_ = self.types[typename]
+        return type_.get_native_size() + sum(self.t_get_size(x) for _, x in type_.get_fields())
+
     def with_delta_applied(self, delta):
         result = State()
         result.ptr = self.ptr + delta.ptr_delta
         result.ptr_id = self.ptr_id
         result.named_locations = self.named_locations.copy()
+        result.name_type_names = self.name_type_names.copy()
         result.cell_values = self.cell_values.copy()
         result.macros = self.macros.copy()
+        result.types = self.types.copy()
         result.n_errors = self.n_errors
         result.quiet = self.quiet
 
@@ -112,7 +138,7 @@ class State:
         return result
 
     def __str__(self):
-        return f'State(vals={dict(self.cell_values)}, default={self.cell_values[None]} ptr={self.ptr}, ptr_id={self.ptr_id}, locs={self.named_locations})'
+        return f'State(vals={dict(self.cell_values)}, default={self.cell_values[None]} ptr={self.ptr}, ptr_id={self.ptr_id}, locs={self.named_locations}, name_type_names={self.name_type_names}, types={self.types})'
 
 if __name__ == "__main__":
     # Ad-hoc tests

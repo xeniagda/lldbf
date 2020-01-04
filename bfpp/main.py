@@ -3,7 +3,7 @@ from parse import parse
 from context import State
 from postproc import postproc
 from init_macros import INIT_MACROS
-
+from init_types import INIT_TYPES
 
 def compile_path_to_str(path):
     code = open(path, "r").read()
@@ -11,6 +11,7 @@ def compile_path_to_str(path):
 
     ctx = State()
     ctx.macros = INIT_MACROS
+    ctx.types = INIT_TYPES
 
     res = tokens.into_bf(ctx)
 

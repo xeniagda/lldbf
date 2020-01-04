@@ -5,6 +5,7 @@ from bfppfile import Span, BFPPFile
 from error import *
 from context import State, StateDelta
 from cell_action import *
+import bfpp_types
 
 class BFPPToken(ABC):
     @abstractmethod
@@ -214,8 +215,9 @@ class LocDec(BFPPToken):
         return ""
 
     def get_delta(self, ctx):
-        for name, idx in self.bare.get_var_offsets().items():
+        for name, (idx, type_name) in self.bare.get_var_offsets_and_type_names(ctx).items():
             ctx.named_locations[name] = ctx.ptr + idx
+            ctx.name_type_names[name] = type_name
 
         return StateDelta()
 
@@ -240,7 +242,13 @@ class LocGoto(BFPPToken):
             return "<" * (-delta.ptr_delta)
 
     def get_delta(self, ctx):
-        at = self.path.get_location(ctx)
+        at, type_ = self.path.get_location_and_type(ctx)
+
+        if ctx.t_get_size(type_) != 1:
+            if not ctx.quiet:
+                err = GotoWide(self.span, type_, ctx)
+                err.show()
+                ctx.n_errors += 1
 
         delta = at - ctx.ptr
         return StateDelta(delta)
@@ -297,13 +305,15 @@ class DeclareMacro(BFPPToken):
         # Dry-run macro to check for errors/warnings
         dry_ctx = State()
         dry_ctx.macros = ctx.macros
+        dry_ctx.types = ctx.types
         # Make sure all values are unknown
         dry_ctx.cell_values = defaultdict(lambda: None)
         dry_ctx.quiet = ctx.quiet
 
         # Fill in args
-        for arg, at in self.args.get_var_offsets().items():
+        for arg, (at, type_name) in self.args.get_var_offsets_and_type_names(ctx).items():
             dry_ctx.named_locations[arg] = at
+            dry_ctx.name_type_names[arg] = type_name
 
         _ = self.content.into_bf(dry_ctx)
         _ = self.content.get_delta(dry_ctx)
@@ -339,29 +349,37 @@ class InvokeMacro(BFPPToken):
             return TokenList(self.span, []), ctx
 
         fn = ctx.macros[self.name]
-        if not ctx.quiet and len(self.args) != len(fn.args.declarations):
-            er = Error(
-                self.span,
-                msg="Expected {} variables, got {}".format(len(fn.args.locations), len(self.args)),
-            )
-            er.show()
-            ctx.n_errors += 1
-
-        arg_locs = {}
-        # Assign addresses for arguments
-        path_argnames = zip(self.args, fn.args.declarations)
-        for i, (path, argname) in enumerate(path_argnames):
-            loc = path.get_location(ctx)
-
-            arg_locs[argname] = loc
 
         sub_ctx = State()
         sub_ctx.macros = ctx.macros
+        sub_ctx.types = ctx.types
         sub_ctx.ptr = ctx.ptr
         sub_ctx.cell_values = ctx.cell_values
         sub_ctx.quiet = True
 
-        sub_ctx.named_locations = arg_locs
+        # Fill in arguments and types
+
+        if len(self.args) != len(fn.args.declarations):
+            er = Error(
+                self.span,
+                msg="Wrong number of arguments! Expected {}, got {}".format(
+                    len(fn.args.declarations),
+                    len(self.args),
+                )
+            )
+            er.show()
+            ctx.n_errors += 1
+
+        for arg, (name, (offset, type_name)) in zip(self.args, fn.args.get_var_offsets_and_type_names(ctx).items()):
+            location, current_type_name = arg.get_location_and_type(ctx)
+
+            if current_type_name != type_name:
+                # Commit error
+                print("bad type")
+                print(repr(name), repr(arg), "has type", repr(current_type_name), "we want", repr(type_name))
+
+            sub_ctx.named_locations[name] = location
+            sub_ctx.name_type_names[name] = type_name
 
         goto = LocGoto(self.span, fn.args.active_path)
         fn_with_goto = TokenList(self.span, [goto, fn.content])
@@ -390,49 +408,94 @@ class Path:
     def __str__(self):
         return ".".join(self.parts)
 
-    def get_location(self, ctx):
-        if len(self.parts) == 1:
-            name = self.parts[0]
-            if name in ctx.named_locations:
-                return ctx.named_locations[name]
-            else:
-                if not ctx.quiet:
-                    er = MemNotFoundError(
-                        self.span,
-                        str(self),
-                        ctx,
-                    )
-                    er.show()
-                    ctx.n_errors += 1
-                return 0
-        else:
+    def get_location_and_type(self, ctx):
+        name = self.parts[0]
+        if name not in ctx.named_locations:
             if not ctx.quiet:
-                er = Error(
+                er = MemNotFoundError(
                     self.span,
-                    "Types are not yet implemented"
+                    str(self),
+                    ctx,
                 )
                 er.show()
                 ctx.n_errors += 1
             return 0
 
+        var_offset = ctx.named_locations[name]
+
+        var_type_name = ctx.name_type_names[name]
+
+        offset_and_type = ctx.t_get_offset_and_type_for_path(var_type_name, self.parts[1:])
+        if offset_and_type == None:
+            if not ctx.quiet:
+                er = FieldNotFound(
+                    self.span,
+                    ctx.name_type_names[name],
+                    self
+                )
+                er.show()
+                ctx.n_errors += 1
+            return 0, bfpp_types.Byte()
+
+        offset, type_ = offset_and_type
+
+        return var_offset + offset, type_
+
 class LocDecBare:
     def __init__(self, span, declarations, active_path):
         self.span = span
 
-        self.declarations = declarations
+        self.declarations = declarations # List of tuples, [(name, type)]
         self.active_path = active_path
 
-    def get_var_offsets(self):
+    def get_var_offsets_and_type_names(self, ctx):
         offset = None
+        at = 0
         result_relative = {}
-        for i, name in enumerate(self.declarations):
-            result_relative[name] = i
-            if name == self.active_path.parts[0]:
-                offset = i
+        for name, type_name in self.declarations:
+            if type_name not in ctx.types.keys():
+                if not ctx.quiet:
+                    er = TypeNotFound(
+                        self.span,
+                        type_name
+                    )
+                    er.show()
+                    ctx.n_errors += 1
+                continue
 
-        return {name: i - offset for name, i in result_relative.items()}
+            result_relative[name] = (at, type_name)
+
+            if self.active_path.parts[0] == name:
+                offset_and_type = ctx.t_get_offset_and_type_for_path(type_name, self.active_path.parts[1:])
+                if offset_and_type != None:
+                    offset, type_ = offset_and_type
+                    if ctx.t_get_size(type_) != 1:
+                        if not ctx.quiet:
+                            err = GotoWide(self.span, type_)
+                            err.show()
+                            ctx.n_errors += 1
+
+                    offset = at + offset_and_type[0]
+
+            at += ctx.t_get_size(type_name)
+
+        if offset is None:
+            if not ctx.quiet:
+                er = MemNotFoundError(
+                    self.span,
+                    str(self.active_path),
+                    ctx,
+                )
+                er.show()
+                ctx.n_errors += 1
+
+            offset = 0
+
+        return {name: (i - offset, type_name) for name, (i, type_name) in result_relative.items()}
+
+
     def __repr__(self):
-        return "LocDecBare([" + ",".join(self.declarations) + "]," + repr(self.active_path) + ")"
+        return "LocDecBare([" + ",".join("(" + name + "," + repr(type_) + ")" for name, type_ in self.declarations) + "]," + repr(self.active_path) + ")"
 
     def __str__(self):
-        return "(" + ", ".join(self.declarations) + ") at " + str(self.active_path)
+        return "(" + ", ".join(name + ": " + str(type_) for name, type_ in self.declarations) + ") at " + str(self.active_path)

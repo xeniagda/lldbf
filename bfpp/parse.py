@@ -34,7 +34,12 @@ repetition: block INT
 varname: /[\w\d_]+/
 path: varname ("." varname)*
 
-loc_dec_bare: "(" varname ("," varname) * ")" "at" path
+typename: /[\w][\w\d_]+/
+
+vardec: varname ":" typename
+      | varname // Default to Byte
+
+loc_dec_bare: "(" vardec ("," vardec) * ")" "at" path
 
 loc_dec: "declare" loc_dec_bare
 
@@ -96,6 +101,16 @@ class ParseTransformer(Transformer):
 
     def varname(self, args):
         return args[0].value
+
+    def typename(self, args):
+        return args[0].value
+
+    def vardec(self, args):
+        if len(args) == 1:
+            # Default to Byte
+            return args[0], "Byte"
+        else:
+            return args[0], args[1]
 
     @v_args(meta=True)
     def path(self, args, meta):
@@ -176,19 +191,15 @@ def parse(filename, code):
 if __name__ == "__main__":
     tokens = parse("print_zts.bfpp", """\
 
-def add32(n, tmp) at tmp {
-    +8
-    [
-        to n +4
-        to tmp -
-    ]
-}
-
-declare (a, b) at b
-
-run add32(a, b)
+declare (a: ByteTuple, padding, b: ByteTuple) at a.f0
+to padding .
+to b.f1
 
     """)
     print(repr(tokens))
     print(tokens)
-    print(tokens.into_bf(State()))
+    state = State()
+    from init_types import INIT_TYPES
+    state.types = INIT_TYPES
+    print(tokens.into_bf(state))
+    print(state)
