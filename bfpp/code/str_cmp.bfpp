@@ -88,7 +88,8 @@ unstable [
     to next.marker
 ]
 
-declare (any_wrong: Byte, isnt_wrong: Byte, _, P_marker: Byte) at P_marker
+declare (any_wrong: Byte, current: LChPair) at current.marker
+declare (isnt_wrong: Byte) with isnt_wrong at current.ch_pair.ch1
 
 to isnt_wrong +
 to any_wrong [
