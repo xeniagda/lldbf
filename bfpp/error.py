@@ -144,3 +144,42 @@ class DeclareLocnameNotFound(BaseError):
         # TODO: Find closest and display
         return []
 
+class TypeNotFound(BaseError):
+    def __init__(self, span, typename):
+        super(TypeNotFound, self).__init__(span)
+        self.typename = typename
+
+    def msg(self):
+        return "Could not find type " + f.type_(self.typename)
+
+    def notes(self):
+        # TODO: Find closest and display
+        return []
+
+class FieldNotFound(BaseError):
+    def __init__(self, span, typename, path):
+        super(FieldNotFound, self).__init__(span)
+        self.typename = typename
+        self.path = path
+
+    def msg(self):
+        return "Could not find field " + str(self.path) + " in type " + f.type_(self.typename)
+
+    def notes(self):
+        # TODO: Find closest and display
+        return []
+
+class GotoWide(BaseError):
+    def __init__(self, span, type_, ctx):
+        super(GotoWide, self).__init__(span)
+        self.type_ = type_
+        self.ctx = ctx
+
+    def msg(self):
+        return "Cannot go to a wide type."
+
+    def notes(self):
+        # TODO
+        # Show some fields of size 1
+        size = ctx.t_get_size(self.type_)
+        return [f"The type you're going to has a size of {size} bytes.", "Please go to some field of that type"]

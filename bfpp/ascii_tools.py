@@ -11,6 +11,9 @@ COL_WARN = Fore.MAGENTA
 def var(name):
     return "`" + name + "`"
 
+def type_(name):
+    return "`" + name + "`"
+
 macro = var
 
 def marker(ch):
