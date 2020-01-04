@@ -85,7 +85,11 @@ class Span:
         else:
             first_lines = [first_line]
 
-            last_line = " " * l_space + " " * start_offset + "^" + "-" * (end_offset - start_offset - 2) + "^"
+            last_line = " " * l_space + " " * start_offset
+            if start_offset != end_offset - 1:
+                last_line += "^" + "-" * (end_offset - start_offset - 2) + "^"
+            else:
+                last_line += "^"
             last_line = f.marker(last_line)
 
         inbetween = []
