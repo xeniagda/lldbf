@@ -277,7 +277,7 @@ class Undeclare(BFPPToken):
                 if not ctx.quiet:
                     er = MemNotFoundError(
                         self.span,
-                        str(self),
+                        unvar,
                         ctx,
                     )
                     er.show()
@@ -578,11 +578,11 @@ class LocDecBare:
 
             active_relative_ptr = 0
 
-        return {name: (i - active_relative_ptr + ctx.ptr + rel_from_ptr, type_name) for name, (i, type_name) in result_relative.items()}
+        return {name: (i - active_relative_ptr + rel_from_ptr, type_name) for name, (i, type_name) in result_relative.items()}
 
     def __repr__(self):
-        return "LocDecBare([" + ",".join("(" + name + "," + repr(type_) + ")" for name, type_ in self.declarations) + "]," + repr(self.active_path) + ")"
+        return "LocDecBare([" + ",".join("(" + name + "," + repr(type_) + ")" for name, type_ in self.declarations) + "]," + repr(self.relative) + ")"
 
     def __str__(self):
-        return "(" + ", ".join(name + ": " + str(type_) for name, type_ in self.declarations) + ") at " + str(self.active_path)
+        return "(" + ", ".join(name + ": " + str(type_) for name, type_ in self.declarations) + ") at " + str(self.relative)
 
