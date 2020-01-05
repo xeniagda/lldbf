@@ -2,58 +2,6 @@
 #include std.bfpp
 
 
-// Adds to 4-bit numbers together, stores into a
-def add_nibble_carry(a: Byte, b: Byte, carry: Byte, tmp1: Byte, tmp2: Byte) at a {
-    to tmp1 [-]
-    to tmp2 [-]
-    to carry [-]
-    // a + b > 16
-    // a > 16 - b = b_inv
-
-    // To check if a > 16 - b, we will subtract 16 - b from a, and see if a doesn't hit 0 on the way there
-    // This will leave a with a value of a - (16 - b) = a + b - 16
-    // We can make this (a + b) mod 16 by checking the carry
-
-    declare (b_inv) with b_inv at tmp1
-    undeclare (tmp1)
-
-    run add16(b_inv, tmp2)
-    to b [ to b_inv - to b - ]
-
-    declare (tmp3) with tmp3 at b
-    undeclare (b)
-
-    to carry +
-    to b_inv [
-        // Check if a is zero
-
-        // Move a to tmp2, set tmp3 = a == 0
-        to tmp3 +
-        to a [ to tmp2 + to tmp3 [-] to a - ]
-
-        // Move tmp2 back to a
-        to tmp2 [ to a + to tmp2 - ]
-
-        // If tmp3, we'll reset carry
-        to tmp3 [ to carry [-] to tmp3 - ]
-
-        to a -
-        to b_inv -
-    ]
-
-    // If we don't have carry, the value of a is a + b - 16
-    // So we want to add 16 to it
-
-    // To do that, we'll add 16, and subtract 16 if we have carry
-    run add16(a, tmp3)
-
-    to carry [
-        run dec16(a, tmp3)
-        to tmp2 +
-        to carry -
-    ]
-    to tmp2 [ to carry + to tmp2 - ]
-}
 
 
 // TODO Generate all of this automatically
@@ -237,3 +185,4 @@ run read_u32_hex(a, tmp1, tmp2)
 run read_u32_hex(b, tmp1, tmp2)
 run add_u32_carry(a, b, tmp1, tmp2, tmp3)
 run print_u32_hex(a, tmp1, tmp2)
+
