@@ -31,7 +31,7 @@ class Debug(BFPPToken):
         print("    ctx =", ctx)
         print()
 
-        return ""
+        return "#"
 
     def get_delta(self, ctx):
         return StateDelta()
