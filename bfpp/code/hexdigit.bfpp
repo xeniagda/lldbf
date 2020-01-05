@@ -1,19 +1,24 @@
+// All letters in hex are lowercase
+
 def digit2hex(n, tmp1, tmp2) at n {
+    to tmp1 [-]
+    to tmp2 [-]
 
     // If n < 10, set n <- n + '0' = n + 48
-    // Else, set n <- n - 10 + 'A' = n + 55
+    // Else, set n <- n - 10 + 'a' = n + 107
 
     // Equiv to:
-    // If 10 <= n <= 16, set n <- n - 10 + 'A' - '0' = 7
+    // If 10 <= n <= 16, set n <- n - 10 + 'a' - '0' = n + 39
     // Set n <- n + '0' = n + 48
 
     // Equiv to:
     // set n <- n - 10
     // repeat 6 times:
-    //     If n == 0, set n <- n + 7
+    //     If n == 0, set n <- n + 39
     //     n--
     // end repeat
-    // Set n <- n + 64
+    // Set n <- n + 6
+    // Set n <- n + 48
 
     // Check if 10 <= n <= 16 same as checkng 0 <= n-10 <= 6
 
@@ -38,14 +43,49 @@ def digit2hex(n, tmp1, tmp2) at n {
             to tmp1 [-]
         ]
 
-        // If tmp2 == 1, set n <- n + 7
+        // If tmp2 == 1, set n <- n + 39
         to tmp2 [
-            run add7(n, tmp1)
+            run add39(n, tmp1)
             to tmp2 [-]
         ]
         to n -
     ) 6
 
-    // Increase n by 64 = 8*8
+    // Increase n by 64 = 48 + 6
     run add64(n, tmp1)
 }
+
+// n from ascii to number
+def hex2digit(n: Byte, tmp1: Byte, tmp2: Byte) at n {
+
+    // Make n = 0 if n == 'a'
+    run dec97(n, tmp1)
+
+    // If n >= 0, then it is a letter
+    // n will not be greater than or equal to 6
+    (
+        // Move n to tmp2, set tmp1 = n == 0
+        to tmp1 +
+        to n [ to tmp1 [-] to tmp2 + to n - ]
+
+        // Move tmp2 back to n
+        to tmp2 [ to n + to tmp2 - ]
+
+        // If n == 0 = tmp1, subtract 7 from n
+        to tmp1 [
+           // 49 is the difference between where the digits end and the letters begin
+           // but we need to add 10 since the letters are worth ten more
+           run dec39(n, tmp2)
+           to tmp1 -
+        ]
+
+        to n -
+    ) 6
+
+    // We want to add 6 for the 6 times we decreased n
+    // And we want to make '0' = 0, so we want to add 97-48 = 49
+    // 49 + 6 = 55
+    run add55(n, tmp1)
+
+}
+
