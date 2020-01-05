@@ -9,3 +9,10 @@ to third_variable
 unstable [
     to first_variable
 ]
+
+// Case 3: Undeclaration
+
+declare (a) at a
+undeclare (a)
+
+to a

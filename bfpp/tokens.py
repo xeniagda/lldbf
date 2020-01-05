@@ -253,6 +253,38 @@ class LocGoto(BFPPToken):
         delta = at - ctx.ptr
         return StateDelta(delta)
 
+class Undeclare(BFPPToken):
+    def __init__(self, span, unvars):
+        super().__init__(span)
+        self.unvars = unvars
+
+    def __str__(self):
+        return "undeclare (" + ",".join(str(self.unvars)) + ")"
+
+    def __repr__(self):
+        return "Undeclare(" + repr(self.unvars) + ")"
+
+    def into_bf(self, ctx):
+        self.get_delta(ctx)
+        return ""
+
+    def get_delta(self, ctx):
+        for unvar in self.unvars:
+            if unvar in ctx.named_locations and unvar in ctx.name_type_names:
+                del ctx.named_locations[unvar]
+                del ctx.name_type_names[unvar]
+            else:
+                if not ctx.quiet:
+                    er = MemNotFoundError(
+                        self.span,
+                        str(self),
+                        ctx,
+                    )
+                    er.show()
+                    ctx.n_errors += 1
+
+        return StateDelta()
+
 class AssumeStable(BFPPToken):
     def __init__(self, span, content):
         super().__init__(span)

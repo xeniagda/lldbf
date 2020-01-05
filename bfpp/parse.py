@@ -11,6 +11,7 @@ main: block+
 block: bftoken
      | repetition
      | loc_dec
+     | undeclare
      | loc_goto
      | dec_macro
      | run_macro
@@ -46,6 +47,8 @@ relative_spec: "at" path
 loc_dec_bare: "(" vardec ("," vardec) * ")" relative_spec
 
 loc_dec: "declare" loc_dec_bare
+
+undeclare: "undeclare" "(" varname ("," varname) * ")"
 
 loc_goto: "to" path
 
@@ -147,6 +150,10 @@ class ParseTransformer(Transformer):
         return LocGoto(self.meta2span(meta), path)
 
     @v_args(meta=True)
+    def undeclare(self, args, meta):
+        return Undeclare(self.meta2span(meta), args)
+
+    @v_args(meta=True)
     def dec_macro(self, args, meta):
         mac_name, bare, code = args
 
@@ -227,3 +234,5 @@ struct ChPair {
     state.types = INIT_TYPES
     print(tokens.into_bf(state))
     print(state)
+
+    
