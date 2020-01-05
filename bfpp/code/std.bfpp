@@ -9,6 +9,14 @@ def copy(source: Byte, dest: Byte, tmp: Byte) at source {
 }
 
 // Adds to 4-bit numbers together, stores into a
+
+// TODO
+// Might be able to add to carry instead of setting it
+// We currently need to know if we carried at the end, to make sure the value stays
+// in the range 0..16
+// But we might be able to make a stay in the range when we do the ==0-check
+// If we can do this, we would be able to shave off one temporary to the
+// multiply_nibble function
 def add_nibble_carry(a: Byte, b: Byte, carry: Byte, tmp1: Byte, tmp2: Byte) at a {
     to tmp1 [-]
     to tmp2 [-]
@@ -59,5 +67,66 @@ def add_nibble_carry(a: Byte, b: Byte, carry: Byte, tmp1: Byte, tmp2: Byte) at a
         to carry -
     ]
     to tmp2 [ to carry + to tmp2 - ]
+}
+
+def divmod_2(a: Byte, div: Byte, mod: Byte, tmp1: Byte, tmp2: Byte) at div {
+    to div [-]
+    to mod [-]
+    to tmp1 [-]
+    to tmp2 [-]
+
+    to a [
+        to a -
+
+        // We want to check if a == 0, and if so, set a and mod to one and decrease div
+        // Let tmp1 = (a == 0), move a to tmp2
+        to tmp1 +
+        to a [ to tmp1 [-] to tmp2 + to a - ]
+
+        // Move tmp2 back to a
+        to tmp2 [ to a + to tmp2 - ]
+
+        // Now, let's set a and carry to one and decrease div if tmp1
+
+        to tmp1 [
+            to a +
+            to mod +
+            to div -
+            to tmp1 -
+        ]
+
+        to div +
+
+        to a -
+    ]
+}
+
+
+// TODO
+// Is it faster/simpler to do divide and conquer?
+
+// TODO
+// Maybe the result should be a u8? But then we'd have to move this to bigint.bfpp
+def multiply_nibble(a: Byte, b: Byte, lower: Byte, upper: Byte, tmp1: Byte, tmp2: Byte, tmp3: Byte, tmp4: Byte) at a {
+    to tmp1 [-]
+    to tmp2 [-]
+    to tmp3 [-]
+    to tmp4 [-]
+
+    declare (a_copy) with a_copy at tmp1
+    undeclare (tmp1)
+
+    declare (carry) with carry at tmp2
+    undeclare (tmp2)
+
+
+    to b [
+        run copy(a, a_copy, tmp3)
+        run add_nibble_carry(lower, a_copy, carry, tmp3, tmp4)
+
+        to carry [ to upper + to carry - ]
+
+        to b -
+    ]
 }
 
