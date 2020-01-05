@@ -216,7 +216,7 @@ class LocDec(BFPPToken):
 
     def get_delta(self, ctx):
         for name, (idx, type_name) in self.bare.get_var_offsets_and_type_names(ctx).items():
-            ctx.named_locations[name] = ctx.ptr + idx
+            ctx.named_locations[name] = idx
             ctx.name_type_names[name] = type_name
 
         return StateDelta()
@@ -311,7 +311,7 @@ class DeclareMacro(BFPPToken):
         dry_ctx.quiet = ctx.quiet
 
         # Fill in args
-        for arg, (at, type_name) in self.args.get_var_offsets_and_type_names(ctx).items():
+        for arg, (at, type_name) in self.args.get_var_offsets_and_type_names(dry_ctx).items():
             dry_ctx.named_locations[arg] = at
             dry_ctx.name_type_names[arg] = type_name
 
@@ -371,7 +371,7 @@ class InvokeMacro(BFPPToken):
             ctx.n_errors += 1
 
         invalid_types = False
-        for arg, (name, (offset, type_name)) in zip(self.args, fn.args.get_var_offsets_and_type_names(ctx).items()):
+        for arg, (name, (offset, type_name)) in zip(self.args, fn.args.get_var_offsets_and_type_names(sub_ctx).items()):
             location, current_type_name = arg.get_location_and_type(ctx)
 
             if current_type_name != type_name:
@@ -547,7 +547,7 @@ class LocDecBare:
 
             active_relative_ptr = 0
 
-        return {name: (i - active_relative_ptr + ctx.ptr - rel_from_ptr, type_name) for name, (i, type_name) in result_relative.items()}
+        return {name: (i - active_relative_ptr + ctx.ptr + rel_from_ptr, type_name) for name, (i, type_name) in result_relative.items()}
 
     def __repr__(self):
         return "LocDecBare([" + ",".join("(" + name + "," + repr(type_) + ")" for name, type_ in self.declarations) + "]," + repr(self.active_path) + ")"
