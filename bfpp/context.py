@@ -137,6 +137,23 @@ class State:
 
         return result
 
+    # TODO
+    # Never mutate a state in into_bf/get_delta, always do persistant storage
+    # Without this, it is quite difficult to mutate a field in a state properly,
+    # and a method doing `ctx = ...` would break everything
+    def apply_delta(self, delta):
+        result = self.with_delta_applied(delta)
+
+        self.ptr = result.ptr
+        self.ptr_id = result.ptr_id
+        self.named_locations = result.named_locations
+        self.name_type_names = result.name_type_names
+        self.cell_values = result.cell_values
+        self.macros = result.macros
+        self.types = result.types
+        self.n_errors = result.n_errors
+        self.quiet = result.quiet
+
     def __str__(self):
         return f'State(vals={dict(self.cell_values)}, default={self.cell_values[None]} ptr={self.ptr}, ptr_id={self.ptr_id}, locs={self.named_locations}, name_type_names={self.name_type_names}, types={self.types})'
 

@@ -87,7 +87,7 @@ class TokenList(BFPPToken):
         for x in self.tokens:
             res += x.into_bf(ctx)
             delta = x.get_delta(ctx.silent())
-            ctx = ctx.with_delta_applied(delta)
+            ctx.apply_delta(delta)
 
         return res
 
@@ -127,7 +127,7 @@ class BFLoop(BFPPToken):
 
         preloop = self.get_inner_delta_rep(ctx)
 
-        ctx = ctx.with_delta_applied(preloop)
+        ctx.apply_delta(preloop)
 
         code = "[" + self.inner.into_bf(ctx) + "]"
         if is_effective:
@@ -188,7 +188,7 @@ class Repetition(BFPPToken):
         res = ""
         for i in range(self.count):
             res += self.inner.into_bf(ctx)
-            ctx = ctx.with_delta_applied(self.inner.get_delta(ctx.silent()))
+            ctx.apply_delta(self.inner.get_delta(ctx.silent()))
 
         return res
 
@@ -196,7 +196,7 @@ class Repetition(BFPPToken):
         total = StateDelta()
         for i in range(self.count):
             total @= self.inner.get_delta(ctx)
-            ctx = ctx.with_delta_applied(self.inner.get_delta(ctx))
+            ctx.apply_delta(self.inner.get_delta(ctx))
         return total
 
 class LocDec(BFPPToken):
@@ -348,7 +348,6 @@ class DeclareMacro(BFPPToken):
             dry_ctx.name_type_names[arg] = type_name
 
         _ = self.content.into_bf(dry_ctx)
-        _ = self.content.get_delta(dry_ctx)
 
         ctx.macros[self.name] = self
         return ""
