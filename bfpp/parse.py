@@ -87,6 +87,7 @@ COMMENT: "/*" /(.|\n)*?/ "*/"
 
 parser = Lark(grammar, start="main", propagate_positions=True)
 
+INCLUDED_FILES = set()
 
 class ParseTransformer(Transformer):
     def __init__(self, bfile):
@@ -186,12 +187,18 @@ class ParseTransformer(Transformer):
 
         return AssumeStable(self.meta2span(meta), cont)
 
-    def include(self, args):
+    @v_args(meta=True)
+    def include(self, args, meta):
         path = args[0]
         folder = os.path.dirname(self.bfile.name)
         inc_filepath = os.path.join(folder, path)
 
-        return parse(path, open(inc_filepath).read())
+        if inc_filepath in INCLUDED_FILES:
+            return TokenList(self.meta2span(meta), [])
+
+        INCLUDED_FILES.add(inc_filepath)
+
+        return parse(inc_filepath, open(inc_filepath).read())
 
     def preproc_directive(self, args):
         return args[0]
