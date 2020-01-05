@@ -1,0 +1,9 @@
+// Some simple standard macros
+
+def copy(source: Byte, dest: Byte, tmp: Byte) at source {
+    to dest [-]
+    to tmp [-]
+
+    to source [ to dest + to tmp + to source - ]
+    to tmp [ to source + to tmp - ]
+}
