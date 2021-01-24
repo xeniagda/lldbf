@@ -156,14 +156,15 @@ A few notable functions are:
 
 ## Example code:
 
-Example code can be found in the `bfpp/code/` directory. Some notable examples are:
+Example code can be found in the `bfpp/example-code/` directory. A standard library is also available in "bfpp/stdlib". Some notable examples are:
 
-* `str_cmp.bfpp`: A string comparison algorithm. This is a quite simple, but very nontrivial program to write in brainfuck, as you need to manage memory
+* `example-code/str_cmp.bfpp`: A string comparison algorithm. This is a quite simple, but very nontrivial program to write in brainfuck, as you need to manage memory
 dynamically.
 
-* `bigint.bfpp`: Definition of a few types representing bigger numbers than brainfuck normally supports, (16-, 32-bit).
+* `stdlib/bigint.bfpp`: Definition of a few types representing bigger numbers than brainfuck normally supports, (16-, 32-bit).
 
 ## Error reference
 
 There are around a dozen different error messages BFPP can produce. In the `errortrigs/`-directory, there are pieces of example code which trigger each
 error.
+
