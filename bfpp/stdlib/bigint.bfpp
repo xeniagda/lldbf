@@ -241,16 +241,3 @@ def invert_u32(a: u32, tmp1: Byte) at a.n0 {
     to tmp1 [ to a.n28 + to tmp1 - ]
 }
 
-declare (a: u32, b: u32, tmp1, tmp2, tmp3) at a.n28
-
-run read_u32_hex(a, tmp1, tmp2)
-run read_u32_hex(b, tmp1, tmp2)
-
-debug
-run invert_u32(b, tmp1)
-debug
-run add_u32_carry(a, b, tmp1, tmp2, tmp3)
-debug
-
-run print_u32_hex(a, tmp1, tmp2)
-
