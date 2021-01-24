@@ -3,6 +3,7 @@ from tokens import *
 from lark import Lark, Transformer, v_args
 from bfppfile import BFPPFile, Span
 from error import *
+from include import StdLibPath, LocalPath
 
 grammar = r"""
 
@@ -66,8 +67,13 @@ loop: stable_loop
 assume_stable: "assume" "stable" "{" main "}"
 
 ?filepath: /[\w.\/]+/
+std_path: "<" filepath ">"
+local_path: "\"" filepath "\""
 
-include: "#" "include" filepath
+?inc_path: std_path
+        | local_path
+
+include: "#" "include" inc_path
 
 preproc_directive: include
 debug: "debug"
@@ -189,16 +195,20 @@ class ParseTransformer(Transformer):
 
     @v_args(meta=True)
     def include(self, args, meta):
-        path = args[0]
-        folder = os.path.dirname(self.bfile.name)
-        inc_filepath = os.path.join(folder, path)
+        path = args[0].find_path()
 
-        if inc_filepath in INCLUDED_FILES:
+        if path in INCLUDED_FILES:
             return TokenList(self.meta2span(meta), [])
 
-        INCLUDED_FILES.add(inc_filepath)
+        INCLUDED_FILES.add(path)
 
-        return parse(inc_filepath, open(inc_filepath).read())
+        return parse(path, open(path).read())
+
+    def std_path(self, args):
+        return StdLibPath(args[0])
+
+    def local_path(self, args):
+        return LocalPath(args[0], self.bfile)
 
     def preproc_directive(self, args):
         return args[0]
