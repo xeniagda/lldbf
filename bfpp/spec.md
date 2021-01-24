@@ -151,7 +151,7 @@ There is a very light standard library BFPP. Parts of it come from the `code/std
 
 A few notable functions are:
 
-* `decn(var: cell, tmp: cell)` / `addn(var: cell, tmp: cell)` where `n` is some number subtracts or adds `n` to the variable in an efficient way.
+* `decn(var: cell, tmp: cell)` / `addn(var: cell, tmp: cell)` / `setn(var: cell, tmp: cell)` where `n` is some number subtracts or adds `n` to the variable in an efficient way.
 * `copy(source: cell, dest: cell, tmp: cell)`: Copies values.
 
 ## Example code:
