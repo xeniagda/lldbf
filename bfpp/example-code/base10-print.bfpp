@@ -1,0 +1,6 @@
+#include "base10.bfpp"
+
+declare (n, tmp1, tmp2, tmp3, tmp4, tmp5) at n
+run add154(n, tmp1)
+
+run print10(n, tmp1, tmp2, tmp3, tmp4, tmp5)

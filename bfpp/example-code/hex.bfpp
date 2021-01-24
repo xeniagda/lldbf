@@ -1,5 +1,5 @@
-#include hexdigit.bfpp
-#include divmod.bfpp
+#include<hexdigit.bfpp>
+#include<divmod.bfpp>
 
 declare (input, denom, div_res, tmp2, tmp1, mod_res) at input
 

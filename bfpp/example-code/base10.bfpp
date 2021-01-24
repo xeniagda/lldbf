@@ -1,4 +1,4 @@
-#include divmod.bfpp
+#include<divmod.bfpp>
 
 // Assumes tmp1 == tmp2 == div == mod == 0
 // Sets n = 0
@@ -31,8 +31,3 @@ def print10(n, divider, div, mod, tmp1, tmp2) at n {
     run add48(n, tmp1)
     to n . [-]
 }
-
-declare (n, tmp1, tmp2, tmp3, tmp4, tmp5) at n
-run add154(n, tmp1)
-
-run print10(n, tmp1, tmp2, tmp3, tmp4, tmp5)

@@ -1,4 +1,4 @@
-#include divmod.bfpp
+#include<divmod.bfpp>
 
 declare (n, denom, div, mod, tmp1, tmp2) at n
 
