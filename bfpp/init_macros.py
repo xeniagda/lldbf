@@ -17,50 +17,63 @@ def inc_by(n):
 # Generate setN
 for i in range(256):
     (x, y, z, k) = precomp_xyzk_list[i]
+
     clear_tmp = TokenList(PREGEN_SPAN, [
         LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["tmp"])),
         BFLoop(PREGEN_SPAN, True, BFToken(PREGEN_SPAN, "-")),
     ])
 
-    if y == z:
-        fn_body = TokenList(PREGEN_SPAN, [
-            clear_tmp,
-            LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["res"])),
-            inc_by(k + x),
-        ])
-    elif y == 0:
-        fn_body = TokenList(PREGEN_SPAN, [
-            clear_tmp,
-            LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["res"])),
-            inc_by(k),
-        ])
-    else:
-        fn_body = TokenList(PREGEN_SPAN, [
-            clear_tmp,
-            LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["tmp"])),
-            inc_by(x),
-            BFLoop(
-                None,
-                True,
-                TokenList(PREGEN_SPAN, [
-                    LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["res"])),
-                    inc_by(y),
-                    LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["tmp"])),
-                    inc_by(-z),
-                ])),
-            LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["res"])),
-            inc_by(k),
-        ])
+    clear_res = TokenList(PREGEN_SPAN, [
+        LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["res"])),
+        BFLoop(PREGEN_SPAN, True, BFToken(PREGEN_SPAN, "-")),
+    ])
 
-    args = LocDecBare(PREGEN_SPAN, [("res", "Byte"), ("tmp", "Byte")], (None, Path(PREGEN_SPAN, ["tmp"])))
+    for do_set in [True, False]:
+        if y == z:
+            fn_body = TokenList(PREGEN_SPAN, [
+                # clear_tmp,
+                LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["res"])),
+                inc_by(k + x),
+            ])
+        elif y == 0:
+            fn_body = TokenList(PREGEN_SPAN, [
+                # clear_tmp,
+                LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["res"])),
+                inc_by(k),
+            ])
+        else:
+            fn_body = TokenList(PREGEN_SPAN, [
+                clear_tmp,
+                LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["tmp"])),
+                inc_by(x),
+                BFLoop(
+                    None,
+                    True,
+                    TokenList(PREGEN_SPAN, [
+                        LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["res"])),
+                        inc_by(y),
+                        LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["tmp"])),
+                        inc_by(-z),
+                    ])),
+                LocGoto(PREGEN_SPAN, Path(PREGEN_SPAN, ["res"])),
+                inc_by(k),
+            ])
 
-    fn = DeclareMacro(PREGEN_SPAN, "add" + str(i), args, fn_body)
-    INIT_MACROS["add" + str(i)] = fn
+        if do_set:
+            fn_body.tokens.insert(0, clear_res)
 
-    dec_n = 256 - i
-    if i == 0:
-        dec_n = 0
-    fn = DeclareMacro(PREGEN_SPAN, "dec" + str(dec_n), args, fn_body)
-    INIT_MACROS["dec" + str(dec_n)] = fn
+        args = LocDecBare(PREGEN_SPAN, [("res", "Byte"), ("tmp", "Byte")], (None, Path(PREGEN_SPAN, ["tmp"])))
 
+        if do_set:
+            fn = DeclareMacro(PREGEN_SPAN, "set" + str(i), args, fn_body)
+            INIT_MACROS["set" + str(i)] = fn
+        else:
+            fn = DeclareMacro(PREGEN_SPAN, "add" + str(i), args, fn_body)
+            INIT_MACROS["add" + str(i)] = fn
+
+            dec_n = 256 - i
+            if i == 0:
+                dec_n = 0
+            fn = DeclareMacro(PREGEN_SPAN, "dec" + str(dec_n), args, fn_body)
+            INIT_MACROS["dec" + str(dec_n)] = fn
 
