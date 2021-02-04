@@ -8,6 +8,12 @@ def copy(source: Byte, dest: Byte, tmp: Byte) at source {
     to tmp [ to source + to tmp - ]
 }
 
+def move(source: Byte, dest) at source {
+    to dest [-]
+
+    to source [ to dest + to source - ]
+}
+
 // Adds to 4-bit numbers together
 
 // TODO

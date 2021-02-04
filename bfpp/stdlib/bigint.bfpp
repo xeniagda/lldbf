@@ -22,6 +22,11 @@ def copy_u8(a: u8, b: u8, tmp: Byte) at a.n0 {
     run copy(a.n4, b.n4, tmp)
 }
 
+def move_u8(a: u8, b: u8) at a.n0 {
+    run move(a.n0, b.n0)
+    run move(a.n4, b.n4)
+}
+
 def print_u8_hex(a: u8, tmp1: Byte, tmp2: Byte) at a.n4 {
     run digit2hex(a.n4, tmp1, tmp2)
     to a.n4 .
@@ -45,6 +50,18 @@ def invert_u8(a: u8, tmp1: Byte) at a.n0 {
     to tmp1 +15
     to a.n4 [ to tmp1 - to a.n4 - ]
     to tmp1 [ to a.n4 + to tmp1 - ]
+}
+
+def is_u8_zero(a: u8, result, tmp1, tmp2) at tmp1 {
+    to tmp1 [-]
+    to tmp2 [-]
+    run set1(result, tmp1)
+
+    run copy(a.n0, tmp1, tmp2)
+    to tmp1 [ to result [-] to tmp1 [-] ]
+
+    run copy(a.n4, tmp1, tmp2)
+    to tmp1 [ to result [-] to tmp1 [-] ]
 }
 
 def zero_u8(a: u8) at a.n0 {
@@ -77,6 +94,13 @@ def copy_u16(a: u16, b: u16, tmp: Byte) at a.n0 {
     run copy(a.n4, b.n4, tmp)
     run copy(a.n8, b.n8, tmp)
     run copy(a.n12, b.n12, tmp)
+}
+
+def move_u16(a: u16, b: u16) at a.n0 {
+    run move(a.n0, b.n0)
+    run move(a.n4, b.n4)
+    run move(a.n8, b.n8)
+    run move(a.n12, b.n12)
 }
 
 def print_u16_hex(a: u16, tmp1: Byte, tmp2: Byte) at a.n12 {
@@ -120,6 +144,24 @@ def invert_u16(a: u16, tmp1: Byte) at a.n0 {
     to tmp1 +15
     to a.n12 [ to tmp1 - to a.n12 - ]
     to tmp1 [ to a.n12 + to tmp1 - ]
+}
+
+def is_u16_zero(a: u16, result, tmp1, tmp2) at tmp1 {
+    to tmp1 [-]
+    to tmp2 [-]
+    run set1(result, tmp1)
+
+    run copy(a.n0, tmp1, tmp2)
+    to tmp1 [ to result [-] to tmp1 [-] ]
+
+    run copy(a.n4, tmp1, tmp2)
+    to tmp1 [ to result [-] to tmp1 [-] ]
+
+    run copy(a.n8, tmp1, tmp2)
+    to tmp1 [ to result [-] to tmp1 [-] ]
+
+    run copy(a.n12, tmp1, tmp2)
+    to tmp1 [ to result [-] to tmp1 [-] ]
 }
 
 def zero_u16(a: u16) at a.n0 {
@@ -178,6 +220,18 @@ def copy_u32(a: u32, b: u32, tmp: Byte) at a.n0 {
     run copy(a.n20, b.n20, tmp)
     run copy(a.n24, b.n24, tmp)
     run copy(a.n28, b.n28, tmp)
+}
+
+def move_u32(a: u32, b: u32) at a.n0 {
+    run move(a.n0, b.n0)
+    run move(a.n4, b.n4)
+    run move(a.n8, b.n8)
+    run move(a.n12, b.n12)
+
+    run move(a.n16, b.n16)
+    run move(a.n20, b.n20)
+    run move(a.n24, b.n24)
+    run move(a.n28, b.n28)
 }
 
 def print_u32_hex(a: u32, tmp1: Byte, tmp2: Byte) at a.n28 {
@@ -252,6 +306,36 @@ def invert_u32(a: u32, tmp1: Byte) at a.n0 {
     to tmp1 +15
     to a.n28 [ to tmp1 - to a.n28 - ]
     to tmp1 [ to a.n28 + to tmp1 - ]
+}
+
+def is_u32_zero(a: u32, result, tmp1, tmp2) at tmp1 {
+    to tmp1 [-]
+    to tmp2 [-]
+    run set1(result, tmp1)
+
+    run copy(a.n0, tmp1, tmp2)
+    to tmp1 [ to result [-] to tmp1 [-] ]
+
+    run copy(a.n4, tmp1, tmp2)
+    to tmp1 [ to result [-] to tmp1 [-] ]
+
+    run copy(a.n8, tmp1, tmp2)
+    to tmp1 [ to result [-] to tmp1 [-] ]
+
+    run copy(a.n12, tmp1, tmp2)
+    to tmp1 [ to result [-] to tmp1 [-] ]
+
+    run copy(a.n16, tmp1, tmp2)
+    to tmp1 [ to result [-] to tmp1 [-] ]
+
+    run copy(a.n20, tmp1, tmp2)
+    to tmp1 [ to result [-] to tmp1 [-] ]
+
+    run copy(a.n24, tmp1, tmp2)
+    to tmp1 [ to result [-] to tmp1 [-] ]
+
+    run copy(a.n28, tmp1, tmp2)
+    to tmp1 [ to result [-] to tmp1 [-] ]
 }
 
 def zero_u32(a: u32) at a.n0 {
