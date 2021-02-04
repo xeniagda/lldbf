@@ -47,6 +47,11 @@ def invert_u8(a: u8, tmp1: Byte) at a.n0 {
     to tmp1 [ to a.n4 + to tmp1 - ]
 }
 
+def zero_u8(a: u8) at a.n0 {
+    to a.n0 [-]
+    to a.n4 [-]
+}
+
 struct u16 {
     n12: Byte,
     n8: Byte,
@@ -116,6 +121,14 @@ def invert_u16(a: u16, tmp1: Byte) at a.n0 {
     to a.n12 [ to tmp1 - to a.n12 - ]
     to tmp1 [ to a.n12 + to tmp1 - ]
 }
+
+def zero_u16(a: u16) at a.n0 {
+    to a.n0 [-]
+    to a.n4 [-]
+    to a.n8 [-]
+    to a.n12 [-]
+}
+
 
 struct u32 {
     n28: Byte,
@@ -239,5 +252,16 @@ def invert_u32(a: u32, tmp1: Byte) at a.n0 {
     to tmp1 +15
     to a.n28 [ to tmp1 - to a.n28 - ]
     to tmp1 [ to a.n28 + to tmp1 - ]
+}
+
+def zero_u32(a: u32) at a.n0 {
+    to a.n0 [-]
+    to a.n4 [-]
+    to a.n8 [-]
+    to a.n12 [-]
+    to a.n16 [-]
+    to a.n20 [-]
+    to a.n24 [-]
+    to a.n28 [-]
 }
 
