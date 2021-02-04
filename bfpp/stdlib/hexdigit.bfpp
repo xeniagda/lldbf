@@ -57,6 +57,8 @@ def digit2hex(n, tmp1, tmp2) at n {
 
 // n from ascii to number
 def hex2digit(n: Byte, tmp1: Byte, tmp2: Byte) at n {
+    to tmp1 [-]
+    to tmp2 [-]
 
     // Make n = 0 if n == 'a'
     run dec97(n, tmp1)
